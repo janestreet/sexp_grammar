@@ -32,6 +32,7 @@ module Validation_callbacks = struct
   let integer = of_type "integer" (module Z)
   let float = of_type "float" (module Float)
   let string = of_type "string" (module String)
+  let tag f _ _ = f
 
   let option f =
     let read_old_option_format = !Sexplib0.Sexp_conv.read_old_option_format in
@@ -46,7 +47,11 @@ module Validation_callbacks = struct
 
   let union fs =
     Staged.stage (fun sexp ->
-      Or_error.find_ok (List.map fs ~f:(fun f -> Staged.unstage f sexp)))
+      match Or_error.find_ok (List.map fs ~f:(fun f -> Staged.unstage f sexp)) with
+      | Ok _ as ok -> ok
+      | Error error ->
+        let s = "expected union of several grammars, but none were satisfied." in
+        Or_error.error_s [%message s ~_:(error : Error.t)])
   ;;
 
   let lazy_ lazy_f = Staged.stage (fun sexp -> Staged.unstage (Lazy.force lazy_f) sexp)
@@ -62,16 +67,18 @@ module Validation_callbacks = struct
   ;;
 
   let empty =
-    Staged.stage (fun sexps ->
-      if List.is_empty sexps
+    Staged.stage (fun remaining_sexps ->
+      if List.is_empty remaining_sexps
       then Ok ()
-      else Or_error.error_s [%message "too many sexps" (sexps : Sexp.t list)])
+      else
+        Or_error.error_s
+          [%message "too many sexps in list" (remaining_sexps : Sexp.t list)])
   ;;
 
   let cons t list_t =
     Staged.stage (fun sexps ->
       match sexps with
-      | [] -> Or_error.error_s [%message "too few sexps"]
+      | [] -> Or_error.error_s [%message "too few sexps in list"]
       | head :: tail ->
         let%bind () = Staged.unstage t head
         and () = Staged.unstage list_t tail in
@@ -80,7 +87,11 @@ module Validation_callbacks = struct
 
   let many t =
     Staged.stage (fun sexps ->
-      List.fold_result sexps ~init:() ~f:(fun () sexp -> Staged.unstage t sexp))
+      match List.map sexps ~f:(Staged.unstage t) |> Or_error.all_unit with
+      | Ok _ as ok -> ok
+      | Error error ->
+        let s = "Some items in list did not satisfy grammar." in
+        Or_error.error_s [%message s ~_:(error : Error.t)])
   ;;
 
   module Seen_or_unseen = struct
@@ -126,7 +137,7 @@ module Validation_callbacks = struct
     let fields =
       match
         fields
-        |> List.Assoc.map ~f:(fun field -> Seen_or_unseen.Unseen field)
+        |> List.Assoc.map ~f:(fun (field, _) -> Seen_or_unseen.Unseen field)
         |> Map.of_alist (module String)
       with
       | `Ok fields -> fields
@@ -146,8 +157,10 @@ module Validation_callbacks = struct
               Or_error.error_s [%message "missing record field" (field_name : string)])))
   ;;
 
-  let variant clauses ~name_kind =
-    let (module Name) = Sexp_grammar.Name_kind.to_string_comparator name_kind in
+  let variant clauses ~case_sensitivity =
+    let (module Name) =
+      Sexp_grammar.Case_sensitivity.to_string_comparator case_sensitivity
+    in
     let clauses =
       match Map.of_alist (module Name) clauses with
       | `Ok clauses -> clauses
@@ -171,9 +184,9 @@ module Validation_callbacks = struct
           [%message
             "invalid variant; unrecognized name"
               (clause_name : string)
-              (name_kind : Sexp_grammar.Name_kind.t)
+              (case_sensitivity : Sexp_grammar.Case_sensitivity.t)
               ~recognized:(Map.keys clauses : string list)]
-      | Some maybe_t_list ->
+      | Some (maybe_t_list, _) ->
         (match maybe_sexps, maybe_t_list with
          | None, None -> Ok ()
          | None, Some _ ->
@@ -196,15 +209,6 @@ end
 
 module Validation = Sexp_grammar.Fold_recursive (Validation_callbacks)
 
-let validate grammar = Validation.of_typed_grammar_exn grammar
-let validate_grammar = Validation.of_grammar_exn
-let validate_list_grammar = Validation.of_list_grammar_exn
-
-let acceptance f x =
-  let g = f x in
-  Staged.stage (fun y -> Result.is_ok (Staged.unstage g y))
-;;
-
-let accepts t = acceptance validate t
-let grammar_accepts = acceptance validate_grammar
-let list_grammar_accepts = acceptance validate_list_grammar
+let validate_sexp = Validation.of_typed_grammar_exn
+let validate_sexp_untyped = Validation.of_grammar_exn
+let validate_sexp_list = Validation.of_list_grammar_exn

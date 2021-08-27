@@ -17,7 +17,10 @@ end
 let%expect_test "Yield of invalid sexps" =
   let test (module M : S) =
     let generator = create_unfiltered M.t_sexp_grammar in
-    let accepts = Staged.unstage (Validate_sexp.accepts M.t_sexp_grammar) in
+    let accepts =
+      Staged.unstage (Sexp_grammar_validation.validate_sexp M.t_sexp_grammar)
+      >> Result.is_ok
+    in
     Base_quickcheck.Test.with_sample_exn generator ~f:(fun sequence ->
       let valid = Sequence.count sequence ~f:accepts in
       let num_values = Sequence.length sequence in
@@ -36,7 +39,7 @@ let%expect_test "Yield of invalid sexps" =
             }
       [@@deriving sexp_grammar]
     end);
-  [%expect {| (wasted 6.7%) |}];
+  [%expect {| (wasted 19.67%) |}];
   (* polymorphic variants *)
   test
     (module struct
@@ -47,7 +50,7 @@ let%expect_test "Yield of invalid sexps" =
         ]
       [@@deriving sexp_grammar]
     end);
-  [%expect {| (wasted 5.56%) |}];
+  [%expect {| (wasted 5.77%) |}];
   (* records *)
   test
     (module struct
@@ -58,7 +61,7 @@ let%expect_test "Yield of invalid sexps" =
         }
       [@@deriving sexp_grammar]
     end);
-  [%expect {| (wasted 18.28%) |}];
+  [%expect {| (wasted 18.23%) |}];
   (* very permissive record, as in some config files *)
   test
     (module struct
@@ -69,6 +72,6 @@ let%expect_test "Yield of invalid sexps" =
         }
       [@@deriving sexp_grammar] [@@allow_extra_fields]
     end);
-  [%expect {| (wasted 57.4%) |}];
+  [%expect {| (wasted 58.92%) |}];
   ignore ()
 ;;

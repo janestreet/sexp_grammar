@@ -35,15 +35,16 @@ let%expect_test "expression w/ variant attribute" =
   [%expect
     {|
     (Variant
-     ((name_kind Any_case)
+     ((case_sensitivity Case_sensitive)
       (clauses
-       (((name A) (clause_kind Atom_clause))
-        ((name B)
-         (clause_kind
-          (List_clause
-           (args
-            (Many
-             (Variant
-              ((name_kind Any_case)
-               (clauses (((name C) (clause_kind Atom_clause))))))))))))))) |}]
+       ((No_tag ((name A) (clause_kind Atom_clause)))
+        (No_tag
+         ((name B)
+          (clause_kind
+           (List_clause
+            (args
+             (Many
+              (Variant
+               ((case_sensitivity Case_sensitive)
+                (clauses ((No_tag ((name C) (clause_kind Atom_clause))))))))))))))))) |}]
 ;;

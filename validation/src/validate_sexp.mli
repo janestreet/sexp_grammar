@@ -1,18 +1,16 @@
 open! Base
 
-(** Reports whether the grammar accepts the given sexp. Staged because the outer
-    application does a lot of work. It is often valuable to apply [accepts] to a grammar
-    once, then apply the result to multiple sexps. *)
+(** [validate_sexp [%sexp_grammar: t]] prepares a function to report whether the grammar
+    of [t] accepts a sexp.
 
-val accepts : _ Sexp_grammar.t -> (Sexp.t -> bool) Staged.t
-val grammar_accepts : Sexp_grammar.grammar -> (Sexp.t -> bool) Staged.t
-val list_grammar_accepts : Sexp_grammar.list_grammar -> (Sexp.t list -> bool) Staged.t
+    Staged because the outer application does a lot of work. It is often valuable to apply
+    [accepts] to a grammar once, then apply the result to multiple sexps. *)
+val validate_sexp : _ Sexp_grammar.t -> (Sexp.t -> unit Or_error.t) Staged.t
 
-(** Like [accepts], but gives an error message instead of [false]. *)
+(** [validate_sexp_untyped] is like [validate_sexp] but takes the untyped grammar. *)
+val validate_sexp_untyped : Sexp_grammar.grammar -> (Sexp.t -> unit Or_error.t) Staged.t
 
-val validate : _ Sexp_grammar.t -> (Sexp.t -> unit Or_error.t) Staged.t
-val validate_grammar : Sexp_grammar.grammar -> (Sexp.t -> unit Or_error.t) Staged.t
-
-val validate_list_grammar
+(** [validate_sexp_list] is like [validate_sexp] but validates a sequence of sexps. *)
+val validate_sexp_list
   :  Sexp_grammar.list_grammar
   -> (Sexp.t list -> unit Or_error.t) Staged.t

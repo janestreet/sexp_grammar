@@ -83,8 +83,8 @@ let%expect_test _ =
      (Fields
       ((allow_extra_fields false)
        (fields
-        (((name x) (required true) (args (Cons Float Empty)))
-         ((name y) (required true) (args (Cons Float Empty)))))))) |}]
+        ((No_tag ((name x) (required true) (args (Cons Float Empty))))
+         (No_tag ((name y) (required true) (args (Cons Float Empty))))))))) |}]
 ;;
 
 include struct
@@ -121,11 +121,11 @@ let%expect_test _ =
   [%expect
     {|
     (Variant
-     ((name_kind Capitalized)
+     ((case_sensitivity Case_sensitive_except_first_character)
       (clauses
-       (((name One) (clause_kind Atom_clause))
-        ((name Two) (clause_kind Atom_clause))
-        ((name Three) (clause_kind Atom_clause)))))) |}]
+       ((No_tag ((name One) (clause_kind Atom_clause)))
+        (No_tag ((name Two) (clause_kind Atom_clause)))
+        (No_tag ((name Three) (clause_kind Atom_clause))))))) |}]
 ;;
 
 include struct
@@ -147,10 +147,12 @@ let%expect_test _ =
   [%expect
     {|
     (Variant
-     ((name_kind Capitalized)
+     ((case_sensitivity Case_sensitive_except_first_character)
       (clauses
-       (((name This) (clause_kind (List_clause (args (Cons Integer Empty)))))
-        ((name That) (clause_kind (List_clause (args (Cons String Empty))))))))) |}]
+       ((No_tag
+         ((name This) (clause_kind (List_clause (args (Cons Integer Empty))))))
+        (No_tag
+         ((name That) (clause_kind (List_clause (args (Cons String Empty)))))))))) |}]
 ;;
 
 include struct
@@ -172,10 +174,11 @@ let%expect_test _ =
   [%expect
     {|
     (Variant
-     ((name_kind Capitalized)
+     ((case_sensitivity Case_sensitive_except_first_character)
       (clauses
-       (((name No) (clause_kind Atom_clause))
-        ((name Yes) (clause_kind (List_clause (args (Cons Integer Empty))))))))) |}]
+       ((No_tag ((name No) (clause_kind Atom_clause)))
+        (No_tag
+         ((name Yes) (clause_kind (List_clause (args (Cons Integer Empty)))))))))) |}]
 ;;
 
 include struct
@@ -226,10 +229,10 @@ let%expect_test _ =
   [%expect
     {|
     (Variant
-     ((name_kind Any_case)
+     ((case_sensitivity Case_sensitive)
       (clauses
-       (((name Red) (clause_kind Atom_clause))
-        ((name Blue) (clause_kind Atom_clause)))))) |}]
+       ((No_tag ((name Red) (clause_kind Atom_clause)))
+        (No_tag ((name Blue) (clause_kind Atom_clause))))))) |}]
 ;;
 
 include struct
@@ -255,16 +258,17 @@ let%expect_test _ =
     {|
     (Union
      ((Variant
-       ((name_kind Any_case)
+       ((case_sensitivity Case_sensitive)
         (clauses
-         (((name Red) (clause_kind Atom_clause))
-          ((name Blue) (clause_kind Atom_clause))))))
+         ((No_tag ((name Red) (clause_kind Atom_clause)))
+          (No_tag ((name Blue) (clause_kind Atom_clause)))))))
       (Variant
-       ((name_kind Any_case)
+       ((case_sensitivity Case_sensitive)
         (clauses
-         (((name Fast) (clause_kind Atom_clause))
-          ((name Slow) (clause_kind Atom_clause))
-          ((name Count) (clause_kind (List_clause (args (Cons Integer Empty))))))))))) |}]
+         ((No_tag ((name Fast) (clause_kind Atom_clause)))
+          (No_tag ((name Slow) (clause_kind Atom_clause)))
+          (No_tag
+           ((name Count) (clause_kind (List_clause (args (Cons Integer Empty)))))))))))) |}]
 ;;
 
 include struct
@@ -295,10 +299,11 @@ let%expect_test _ =
         (Fields
          ((allow_extra_fields false)
           (fields
-           (((name data) (required true) (args (Cons (Tyvar a) Empty)))
-            ((name children)
-             (required true)
-             (args (Cons (List (Many (Tycon tree ((Tyvar a))))) Empty)))))))))))) |}]
+           ((No_tag ((name data) (required true) (args (Cons (Tyvar a) Empty))))
+            (No_tag
+             ((name children)
+              (required true)
+              (args (Cons (List (Many (Tycon tree ((Tyvar a))))) Empty))))))))))))) |}]
 ;;
 
 include struct
@@ -329,10 +334,12 @@ let%expect_test _ =
          (Fields
           ((allow_extra_fields false)
            (fields
-            (((name alpha) (required true) (args (Cons (Tycon alpha ()) Empty)))
-             ((name betas)
-              (required true)
-              (args (Cons (List (Many (Tycon beta ()))) Empty)))))))))))) |}]
+            ((No_tag
+              ((name alpha) (required true) (args (Cons (Tycon alpha ()) Empty))))
+             (No_tag
+              ((name betas)
+               (required true)
+               (args (Cons (List (Many (Tycon beta ()))) Empty))))))))))))) |}]
 ;;
 
 include struct
@@ -363,10 +370,12 @@ let%expect_test _ =
          (Fields
           ((allow_extra_fields false)
            (fields
-            (((name alpha) (required true) (args (Cons (Tycon alpha ()) Empty)))
-             ((name betas)
-              (required true)
-              (args (Cons (List (Many (Tycon beta ()))) Empty)))))))))))) |}]
+            ((No_tag
+              ((name alpha) (required true) (args (Cons (Tycon alpha ()) Empty))))
+             (No_tag
+              ((name betas)
+               (required true)
+               (args (Cons (List (Many (Tycon beta ()))) Empty))))))))))))) |}]
 ;;
 
 include struct
@@ -395,10 +404,14 @@ let%expect_test _ =
            (Fields
             ((allow_extra_fields false)
              (fields
-              (((name alpha) (required true) (args (Cons (Tycon alpha ()) Empty)))
-               ((name betas)
-                (required true)
-                (args (Cons (List (Many (Tycon beta ()))) Empty)))))))))))))) |}]
+              ((No_tag
+                ((name alpha)
+                 (required true)
+                 (args (Cons (Tycon alpha ()) Empty))))
+               (No_tag
+                ((name betas)
+                 (required true)
+                 (args (Cons (List (Many (Tycon beta ()))) Empty))))))))))))))) |}]
 ;;
 
 include struct
@@ -430,12 +443,14 @@ let%expect_test _ =
      (Fields
       ((allow_extra_fields true)
        (fields
-        (((name a) (required false) (args (Cons Integer Empty)))
-         ((name b) (required false) (args Empty))
-         ((name c) (required false) (args (Cons Float Empty)))
-         ((name d) (required false) (args (Cons (List (Many String)) Empty)))
-         ((name e) (required false) (args (Cons (List (Many String)) Empty)))
-         ((name f) (required false) (args (Cons (Any Sexp.t) Empty)))))))) |}]
+        ((No_tag ((name a) (required false) (args (Cons Integer Empty))))
+         (No_tag ((name b) (required false) (args Empty)))
+         (No_tag ((name c) (required false) (args (Cons Float Empty))))
+         (No_tag
+          ((name d) (required false) (args (Cons (List (Many String)) Empty))))
+         (No_tag
+          ((name e) (required false) (args (Cons (List (Many String)) Empty))))
+         (No_tag ((name f) (required false) (args (Cons (Any Sexp.t) Empty))))))))) |}]
 ;;
 
 include struct
@@ -467,27 +482,31 @@ let%expect_test _ =
   [%expect
     {|
     (Variant
-     ((name_kind Capitalized)
+     ((case_sensitivity Case_sensitive_except_first_character)
       (clauses
-       (((name A) (clause_kind Atom_clause))
-        ((name B) (clause_kind (List_clause (args (Many Integer)))))
-        ((name C)
-         (clause_kind
-          (List_clause
-           (args
-            (Fields
-             ((allow_extra_fields true)
-              (fields
-               (((name a) (required false) (args (Cons Integer Empty)))
-                ((name b) (required false) (args Empty))
-                ((name c) (required false) (args (Cons Float Empty)))
-                ((name d)
-                 (required false)
-                 (args (Cons (List (Many String)) Empty)))
-                ((name e)
-                 (required false)
-                 (args (Cons (List (Many String)) Empty)))
-                ((name f) (required false) (args (Cons (Any Sexp.t) Empty))))))))))))))) |}]
+       ((No_tag ((name A) (clause_kind Atom_clause)))
+        (No_tag ((name B) (clause_kind (List_clause (args (Many Integer))))))
+        (No_tag
+         ((name C)
+          (clause_kind
+           (List_clause
+            (args
+             (Fields
+              ((allow_extra_fields true)
+               (fields
+                ((No_tag ((name a) (required false) (args (Cons Integer Empty))))
+                 (No_tag ((name b) (required false) (args Empty)))
+                 (No_tag ((name c) (required false) (args (Cons Float Empty))))
+                 (No_tag
+                  ((name d)
+                   (required false)
+                   (args (Cons (List (Many String)) Empty))))
+                 (No_tag
+                  ((name e)
+                   (required false)
+                   (args (Cons (List (Many String)) Empty))))
+                 (No_tag
+                  ((name f) (required false) (args (Cons (Any Sexp.t) Empty))))))))))))))))) |}]
 ;;
 
 include struct
@@ -511,10 +530,10 @@ let%expect_test _ =
   [%expect
     {|
     (Variant
-     ((name_kind Any_case)
+     ((case_sensitivity Case_sensitive)
       (clauses
-       (((name A) (clause_kind Atom_clause))
-        ((name B) (clause_kind (List_clause (args (Many Integer))))))))) |}]
+       ((No_tag ((name A) (clause_kind Atom_clause)))
+        (No_tag ((name B) (clause_kind (List_clause (args (Many Integer)))))))))) |}]
 ;;
 
 include struct
@@ -537,6 +556,6 @@ let%expect_test _ =
      (Fields
       ((allow_extra_fields false)
        (fields
-        (((name x) (required true) (args (Cons (Union ()) Empty)))
-         ((name y) (required true) (args (Cons (Union ()) Empty)))))))) |}]
+        ((No_tag ((name x) (required true) (args (Cons (Union ()) Empty))))
+         (No_tag ((name y) (required true) (args (Cons (Union ()) Empty))))))))) |}]
 ;;

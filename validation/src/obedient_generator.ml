@@ -20,11 +20,18 @@ module Generate_callbacks = struct
   let integer = of_type (module Bigint)
   let float = of_type (module Float)
   let string = of_type (module String)
+  let tag gen _ _ = gen
 
-  let name_examples ~name_kind string =
-    match (name_kind : Sexp_grammar.name_kind) with
-    | Any_case -> [ string ]
-    | Capitalized -> [ String.capitalize string; String.uncapitalize string ]
+  let name_examples ~case_sensitivity string =
+    let%map.List change_case =
+      match (case_sensitivity : Sexp_grammar.case_sensitivity) with
+      | Case_insensitive ->
+        [ String.capitalize; String.uncapitalize; String.lowercase; String.uppercase ]
+      | Case_sensitive -> [ Fn.id ]
+      | Case_sensitive_except_first_character ->
+        [ String.capitalize; String.uncapitalize ]
+    in
+    change_case string
   ;;
 
   let option value_gen =
@@ -59,7 +66,7 @@ module Generate_callbacks = struct
 
   let record fields ~allow_extra_fields =
     let field_gens =
-      List.map fields ~f:(fun (field_name, field) ->
+      List.map fields ~f:(fun (field_name, (field, _)) ->
         let required_gen list_gen =
           let%map sexps = list_gen in
           [ Sexp.List (Sexp.Atom field_name :: sexps) ]
@@ -88,9 +95,9 @@ module Generate_callbacks = struct
     List.concat sexps |> Generator.list_permutations
   ;;
 
-  let variant clauses ~name_kind =
-    List.map clauses ~f:(fun (clause_name, maybe_list_gen) ->
-      let%bind name = Generator.of_list (name_examples ~name_kind clause_name) in
+  let variant clauses ~case_sensitivity =
+    List.map clauses ~f:(fun (clause_name, (maybe_list_gen, _)) ->
+      let%bind name = Generator.of_list (name_examples ~case_sensitivity clause_name) in
       match maybe_list_gen with
       | None -> return (Sexp.Atom name)
       | Some list_gen ->

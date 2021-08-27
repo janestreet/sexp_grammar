@@ -12,6 +12,10 @@ module Field = struct
     | Required of 'a
 end
 
+module And_tags = struct
+  type 'a t = 'a * (string, Sexp.t) List.Assoc.t
+end
+
 (** Common callbacks for folding over a sexp grammar. *)
 module type Callbacks_for_fold_common = sig
   (** Represents the result of folding over a grammar. *)
@@ -35,14 +39,19 @@ module type Callbacks_for_fold_common = sig
   val empty : list_t
   val cons : t -> list_t -> list_t
   val many : t -> list_t
-  val record : (string, list_t Field.t) List.Assoc.t -> allow_extra_fields:bool -> list_t
+
+  val record
+    :  (string, list_t Field.t And_tags.t) List.Assoc.t
+    -> allow_extra_fields:bool
+    -> list_t
 
   val variant
-    :  (string, list_t option) List.Assoc.t
-    -> name_kind:Sexp_grammar.name_kind
+    :  (string, list_t option And_tags.t) List.Assoc.t
+    -> case_sensitivity:Sexp_grammar.case_sensitivity
     -> t
 
   val lazy_ : t Lazy.t -> t
+  val tag : t -> string -> Sexp.t -> t
 end
 
 (** Callbacks for nonrecursive folds. *)
@@ -98,10 +107,11 @@ module type Sexp_grammar = sig
     val map : 'a t -> f:('a -> 'b) -> 'b t
   end
 
-  module Name_kind : sig
-    type t = Sexp_grammar.name_kind =
-      | Any_case
-      | Capitalized
+  module Case_sensitivity : sig
+    type t = Sexp_grammar.case_sensitivity =
+      | Case_insensitive
+      | Case_sensitive
+      | Case_sensitive_except_first_character
     [@@deriving sexp_of]
 
     (** Produces a comparator that compares with respect to a name kind. *)
@@ -119,6 +129,7 @@ module type Sexp_grammar = sig
     | List of list_grammar
     | Variant of variant
     | Union of grammar list
+    | Tagged of grammar with_tag
     | Tyvar of string
     | Tycon of string * grammar list
     | Recursive of grammar * defn list
@@ -130,13 +141,9 @@ module type Sexp_grammar = sig
     | Many of grammar
     | Fields of record
 
-  and name_kind = Sexp_grammar.name_kind =
-    | Any_case
-    | Capitalized
-
   and record = Sexp_grammar.record =
     { allow_extra_fields : bool
-    ; fields : field list
+    ; fields : field with_tag_list list
     }
 
   and field = Sexp_grammar.field =
@@ -145,9 +152,14 @@ module type Sexp_grammar = sig
     ; args : list_grammar
     }
 
+  and case_sensitivity = Sexp_grammar.case_sensitivity =
+    | Case_insensitive
+    | Case_sensitive
+    | Case_sensitive_except_first_character
+
   and variant = Sexp_grammar.variant =
-    { name_kind : name_kind
-    ; clauses : clause list
+    { case_sensitivity : case_sensitivity
+    ; clauses : clause with_tag_list list
     }
 
   and clause = Sexp_grammar.clause =
@@ -158,6 +170,16 @@ module type Sexp_grammar = sig
   and clause_kind = Sexp_grammar.clause_kind =
     | Atom_clause
     | List_clause of { args : list_grammar }
+
+  and 'a with_tag = 'a Sexp_grammar.with_tag =
+    { key : string
+    ; value : Sexp.t
+    ; grammar : 'a
+    }
+
+  and 'a with_tag_list = 'a Sexp_grammar.with_tag_list =
+    | Tag of 'a with_tag_list with_tag
+    | No_tag of 'a
 
   and defn = Sexp_grammar.defn =
     { tycon : string
@@ -194,4 +216,24 @@ module type Sexp_grammar = sig
   module Unroll_recursion :
     Fold_partial with type t := grammar and type list_t := list_grammar
 
+
+  (** {2 Tagging} *)
+
+  (** [first_tag_value tags name of_sexp] returns the first value of [name] in [tags]. *)
+  val first_tag_value
+    :  (string * Sexp.t) list
+    -> string
+    -> [%of_sexp: 'a]
+    -> 'a Or_error.t option
+
+  (** [completion_suggested = false] on a variant constructor means that
+      [Sexp_grammar_completion] will not suggest the constructor as a completion. The
+      constructor is still recognized as valid syntax. Completions are still suggested for
+      its arguments.
+
+      Default is [true].
+
+      This tag is ignored if its value is not a bool or if it is not placed on a variant
+      constructor. *)
+  val completion_suggested : string
 end

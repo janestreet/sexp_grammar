@@ -35,13 +35,16 @@ let%expect_test "complicated record" =
       Fields (
         (allow_extra_fields false)
         (fields (
-          ((name     a)
-           (required true)
-           (args (Cons (List (Many String)) Empty)))
-          ((name     b)
-           (required true)
-           (args (Cons (Option Integer) Empty)))
-          ((name     c)
-           (required true)
-           (args (Cons (List (Many (List (Cons Bool (Cons Float Empty))))) Empty)))))))) |}]
+          (No_tag (
+            (name     a)
+            (required true)
+            (args (Cons (List (Many String)) Empty))))
+          (No_tag (
+            (name     b)
+            (required true)
+            (args (Cons (Option Integer) Empty))))
+          (No_tag (
+            (name     c)
+            (required true)
+            (args (Cons (List (Many (List (Cons Bool (Cons Float Empty))))) Empty))))))))) |}]
 ;;

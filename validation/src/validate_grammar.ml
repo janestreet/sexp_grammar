@@ -9,7 +9,7 @@ let show_grammar (module M : With_grammar) =
 ;;
 
 let validate_acceptance ?config (module M : S) =
-  let validate = Staged.unstage (Validate_sexp.validate M.t_sexp_grammar) in
+  let validate = Staged.unstage (Validate_sexp.validate_sexp M.t_sexp_grammar) in
   Base_quickcheck.Test.run
     ?config
     (module struct
@@ -66,11 +66,12 @@ module Known_to_accept_all_sexps_callbacks = struct
   let cons _ _ = ()
   let many _ = ()
   let record _ ~allow_extra_fields:_ = ()
-  let variant _ ~name_kind:_ = false
+  let variant _ ~case_sensitivity:_ = false
   let tyvar _ = false
   let tycon _ ~params:_ = false
   let recursive _ ~defns:_ = false
   let lazy_ = Lazy.force
+  let tag b _ _ = b
 end
 
 module Known_to_accept_all_sexps =
@@ -100,4 +101,25 @@ let validate_grammar_poly1 ?test_count (module M : S1) =
     (module struct
       type t = A.t M.t [@@deriving quickcheck, sexp, sexp_grammar]
     end)
+;;
+
+let spot_check_grammar (type a) t_sexp_grammar t_of_sexp =
+  let grammar_accepts = unstage (Validate_sexp.validate_sexp t_sexp_grammar) in
+  let t_of_sexp_accepts sexp =
+    Or_error.try_with (fun () -> ignore (t_of_sexp sexp : a))
+  in
+  (* The error messages won't match, but whether it is [Error _] or [Ok _] should. *)
+  let does_agree = [%compare.equal: (unit, _) Result.t] in
+  stage (fun sexp ->
+    let accepted_by_grammar = grammar_accepts sexp in
+    let accepted_by_t_of_sexp = t_of_sexp_accepts sexp in
+    match does_agree accepted_by_t_of_sexp accepted_by_grammar with
+    | true -> Ok ()
+    | false ->
+      error_s
+        [%message
+          "grammar disagrees with [t_of_sexp] as to whether this sexp is valid."
+            (sexp : Sexp.t)
+            (accepted_by_grammar : unit Or_error.t)
+            (accepted_by_t_of_sexp : unit Or_error.t)])
 ;;

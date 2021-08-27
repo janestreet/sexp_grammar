@@ -7,10 +7,11 @@ open struct
   module Sexp_grammar = Sexplib0.Sexp_grammar
 end
 
-module Name_kind = struct
-  type t = Sexp_grammar.name_kind =
-    | Any_case
-    | Capitalized
+module Case_sensitivity = struct
+  type t = Sexp_grammar.case_sensitivity =
+    | Case_insensitive
+    | Case_sensitive
+    | Case_sensitive_except_first_character
   [@@deriving sexp_of]
 
   module String_capitalized = struct
@@ -23,8 +24,9 @@ module Name_kind = struct
 
   let to_string_comparator t : (module Comparator.S with type t = string) =
     match t with
-    | Any_case -> (module String)
-    | Capitalized -> (module String_capitalized)
+    | Case_insensitive -> (module String.Caseless)
+    | Case_sensitive -> (module String)
+    | Case_sensitive_except_first_character -> (module String_capitalized)
   ;;
 end
 
@@ -49,6 +51,7 @@ type grammar = Sexp_grammar.grammar =
   | List of list_grammar
   | Variant of variant
   | Union of grammar list
+  | Tagged of grammar with_tag
   | Tyvar of string
   | Tycon of string * grammar list
   | Recursive of grammar * defn list
@@ -60,13 +63,9 @@ and list_grammar = Sexp_grammar.list_grammar =
   | Many of grammar
   | Fields of record
 
-and name_kind = Sexp_grammar.name_kind =
-  | Any_case
-  | Capitalized
-
 and record = Sexp_grammar.record =
   { allow_extra_fields : bool
-  ; fields : field list
+  ; fields : field with_tag_list list
   }
 
 and field = Sexp_grammar.field =
@@ -75,9 +74,14 @@ and field = Sexp_grammar.field =
   ; args : list_grammar
   }
 
+and case_sensitivity = Sexp_grammar.case_sensitivity =
+  | Case_insensitive
+  | Case_sensitive
+  | Case_sensitive_except_first_character
+
 and variant = Sexp_grammar.variant =
-  { name_kind : name_kind
-  ; clauses : clause list
+  { case_sensitivity : case_sensitivity
+  ; clauses : clause with_tag_list list
   }
 
 and clause = Sexp_grammar.clause =
@@ -88,6 +92,16 @@ and clause = Sexp_grammar.clause =
 and clause_kind = Sexp_grammar.clause_kind =
   | Atom_clause
   | List_clause of { args : list_grammar }
+
+and 'a with_tag = 'a Sexp_grammar.with_tag =
+  { key : string
+  ; value : Sexp.t
+  ; grammar : 'a
+  }
+
+and 'a with_tag_list = 'a Sexp_grammar.with_tag_list =
+  | Tag of 'a with_tag_list with_tag
+  | No_tag of 'a
 
 and defn = Sexp_grammar.defn =
   { tycon : string
@@ -145,6 +159,7 @@ end = struct
   let list t = map t ~f:Callbacks.list
   let many t = map t ~f:Callbacks.many
   let empty = return Callbacks.empty
+  let tag t key value = map t ~f:(fun t -> Callbacks.tag t key value)
 
   let cons head tail =
     Staged.stage (fun ~tycon_env ~tyvar_env ->
@@ -156,17 +171,18 @@ end = struct
   let record fields ~allow_extra_fields =
     Staged.stage (fun ~tycon_env ~tyvar_env ->
       Callbacks.record
-        (List.Assoc.map fields ~f:(fun field ->
-           Field.map field ~f:(fun t -> Staged.unstage t ~tycon_env ~tyvar_env)))
+        (List.Assoc.map fields ~f:(fun (field, tags) ->
+           Field.map field ~f:(fun t -> Staged.unstage t ~tycon_env ~tyvar_env), tags))
         ~allow_extra_fields)
   ;;
 
-  let variant clauses ~name_kind =
+  let variant clauses ~case_sensitivity =
     Staged.stage (fun ~tycon_env ~tyvar_env ->
       Callbacks.variant
-        (List.Assoc.map clauses ~f:(fun option ->
-           Option.map option ~f:(fun t -> Staged.unstage t ~tycon_env ~tyvar_env)))
-        ~name_kind)
+        (List.Assoc.map clauses ~f:(fun (option, tags) ->
+           ( Option.map option ~f:(fun t -> Staged.unstage t ~tycon_env ~tyvar_env)
+           , tags )))
+        ~case_sensitivity)
   ;;
 
   let union list =
@@ -253,12 +269,8 @@ module Fold_nonrecursive (Callbacks : Callbacks_for_fold_nonrecursive) :
     | String -> Callbacks.string
     | Option grammar -> Callbacks.option (of_grammar grammar)
     | List list_grammar -> Callbacks.list (of_list_grammar list_grammar)
-    | Variant { name_kind; clauses } ->
-      List.map clauses ~f:(fun { name; clause_kind } ->
-        match clause_kind with
-        | Atom_clause -> name, None
-        | List_clause { args } -> name, Some (of_list_grammar args))
-      |> Callbacks.variant ~name_kind
+    | Variant { case_sensitivity; clauses } ->
+      List.map clauses ~f:of_clause_with_tag_list |> Callbacks.variant ~case_sensitivity
     | Union grammars -> Callbacks.union (List.map ~f:of_grammar grammars)
     | Tyvar tyvar_name -> Callbacks.tyvar tyvar_name
     | Tycon (tycon_name, params) ->
@@ -270,6 +282,24 @@ module Fold_nonrecursive (Callbacks : Callbacks_for_fold_nonrecursive) :
       in
       Callbacks.recursive (of_grammar grammar) ~defns
     | Lazy lazy_grammar -> Callbacks.lazy_ (Lazy.map ~f:of_grammar lazy_grammar)
+    | Tagged { key; value; grammar } -> Callbacks.tag (of_grammar grammar) key value
+
+  and of_clause_with_tag_list = function
+    | No_tag { name; clause_kind } ->
+      (match clause_kind with
+       | Atom_clause -> name, (None, [])
+       | List_clause { args } -> name, (Some (of_list_grammar args), []))
+    | Tag { key; value; grammar } ->
+      let name, (grammar, tags) = of_clause_with_tag_list grammar in
+      name, (grammar, (key, value) :: tags)
+
+  and of_field_with_tag_list = function
+    | No_tag { name; required; args } ->
+      let args = of_list_grammar args in
+      name, ((if required then Field.Required args else Field.Optional args), [])
+    | Tag { key; value; grammar } ->
+      let name, (grammar, tags) = of_field_with_tag_list grammar in
+      name, (grammar, (key, value) :: tags)
 
   and of_list_grammar = function
     | Empty -> Callbacks.empty
@@ -277,11 +307,7 @@ module Fold_nonrecursive (Callbacks : Callbacks_for_fold_nonrecursive) :
       Callbacks.cons (of_grammar grammar) (of_list_grammar list_grammar)
     | Many grammar -> Callbacks.many (of_grammar grammar)
     | Fields { fields; allow_extra_fields } ->
-      let fields =
-        List.map fields ~f:(fun { name; required; args } ->
-          let args = of_list_grammar args in
-          name, if required then Field.Required args else Field.Optional args)
-      in
+      let fields = List.map fields ~f:of_field_with_tag_list in
       Callbacks.record fields ~allow_extra_fields
   ;;
 
@@ -318,25 +344,37 @@ module Copy_callbacks = struct
   let empty = Empty
   let cons grammar list_grammar = Cons (grammar, list_grammar)
   let many grammar = Many grammar
+  let tag grammar key value = Tagged { key; value; grammar }
+
+  let fold_tags untagged ~tags =
+    List.fold_right tags ~init:(No_tag untagged) ~f:(fun (key, value) grammar ->
+      Tag { key; value; grammar })
+  ;;
 
   let record fields ~allow_extra_fields =
     let fields =
-      List.map fields ~f:(fun (name, field) ->
-        match (field : _ Field.t) with
-        | Required args -> { name; args; required = true }
-        | Optional args -> { name; args; required = false })
+      List.map fields ~f:(fun (name, (field, tags)) ->
+        let field =
+          match (field : _ Field.t) with
+          | Required args -> { name; args; required = true }
+          | Optional args -> { name; args; required = false }
+        in
+        fold_tags field ~tags)
     in
     Fields { allow_extra_fields; fields }
   ;;
 
-  let variant clauses ~name_kind =
+  let variant clauses ~case_sensitivity =
     let clauses =
-      List.map clauses ~f:(fun (name, maybe_args) ->
-        match maybe_args with
-        | None -> { name; clause_kind = Atom_clause }
-        | Some args -> { name; clause_kind = List_clause { args } })
+      List.map clauses ~f:(fun (name, (maybe_args, tags)) ->
+        let clause =
+          match maybe_args with
+          | None -> { name; clause_kind = Atom_clause }
+          | Some args -> { name; clause_kind = List_clause { args } }
+        in
+        fold_tags clause ~tags)
     in
-    Variant { name_kind; clauses }
+    Variant { case_sensitivity; clauses }
   ;;
 
   let tyvar name = Tyvar name
@@ -369,3 +407,11 @@ module Eager_copy = Fold_nonrecursive (Eager_copy_callbacks)
 
 (* Leave [Lazy] constructors out of sexp. *)
 let sexp_of_t _ t = sexp_of_grammar (Eager_copy.of_grammar t.untyped)
+
+let first_tag_value tags name of_sexp =
+  match List.Assoc.find tags name ~equal:String.equal with
+  | None -> None
+  | Some value -> Some (Or_error.try_with (fun () -> of_sexp value))
+;;
+
+let completion_suggested = "completion-suggested"

@@ -39,4 +39,15 @@ module type Validate_grammar = sig
       with a type whose grammar is [Any "A"], to make it easy to see where the argument
       shows up. *)
   val validate_grammar_poly1 : ?test_count:int -> (module S1) -> unit Or_error.t
+
+  (** [spot_check_grammar t_sexp_grammar t_of_sexp] returns a function to check that
+      [t_sexp_grammar] agrees with [t_of_sexp] as to whether an example sexp is valid.
+
+      It pays to apply [spot_check_grammar] to the grammar once and then check multiple
+      sexps with the resulting function. The first application does nontrivial work to
+      prepare the sexp grammar. *)
+  val spot_check_grammar
+    :  [%sexp_grammar: 'a]
+    -> [%of_sexp: 'a]
+    -> (Sexp.t -> unit Or_error.t) Staged.t
 end
