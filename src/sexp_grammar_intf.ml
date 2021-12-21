@@ -187,7 +187,8 @@ module type Sexp_grammar = sig
     ; grammar : grammar
     }
 
-  and 'a t = 'a Sexp_grammar.t = { untyped : grammar } [@@unboxed] [@@deriving sexp_of]
+  and 'a t = 'a Sexp_grammar.t = { untyped : grammar }
+  [@@unboxed] [@@deriving compare, sexp_of]
 
   (** For stable serializations of these types, see [Sexp_grammar_stable]. *)
 

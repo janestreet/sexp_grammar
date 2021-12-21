@@ -108,9 +108,10 @@ and defn = Sexp_grammar.defn =
   ; tyvars : string list
   ; grammar : grammar
   }
-[@@deriving sexp_of]
+[@@deriving compare, sexp_of]
 
-type 'a t = 'a Sexp_grammar.t = { untyped : grammar } [@@unboxed] [@@deriving sexp_of]
+type 'a t = 'a Sexp_grammar.t = { untyped : grammar }
+[@@unboxed] [@@deriving compare, sexp_of]
 
 let coerce = Sexp_grammar.coerce
 
