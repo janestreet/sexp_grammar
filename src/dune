@@ -1,2 +1,2 @@
-(library (name sexp_grammar) (libraries base)
+(library (name sexp_grammar) (public_name sexp_grammar) (libraries base)
  (preprocess (pps ppx_compare ppx_sexp_conv ppx_sexp_message)))
