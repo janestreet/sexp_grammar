@@ -35,7 +35,7 @@ let%expect_test "generator of an enumerable type will exhaust the universe" =
   let test_exhaustiveness (module M : Exhaustiveness.S) =
     let seen = ref (Set.empty (module M)) in
     test (module M) ~f:(fun sexp -> seen := Set.add !seen (M.t_of_sexp sexp));
-    require_sets_are_equal [%here] (module M) !seen (Set.of_list (module M) M.all)
+    require_sets_are_equal [%here] !seen (Set.of_list (module M) M.all)
   in
   (* variant *)
   test_exhaustiveness
