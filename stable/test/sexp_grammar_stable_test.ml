@@ -29,6 +29,7 @@ end [@ocaml.remove_aliases] = struct
       include (
         T : Stable with type t = T.t with type comparator_witness = T.comparator_witness)
 
+      let t_sexp_grammar = T.t_sexp_grammar
       let to_grammar = T.to_grammar
       let of_grammar = T.of_grammar
 
@@ -85,6 +86,7 @@ end [@ocaml.remove_aliases] = struct
       include (
         T : Stable with type t = T.t with type comparator_witness = T.comparator_witness)
 
+      let t_sexp_grammar = T.t_sexp_grammar
       let to_grammar = T.to_grammar
       let of_grammar = T.of_grammar
 
@@ -145,6 +147,8 @@ end [@ocaml.remove_aliases] = struct
 
       include (
         T : Stable with type t = T.t with type comparator_witness = T.comparator_witness)
+
+      let t_sexp_grammar = T.t_sexp_grammar
 
       let%expect_test _ =
         print_and_check_stable_type [%here] (module T) example_grammars;

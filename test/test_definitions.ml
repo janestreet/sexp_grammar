@@ -151,7 +151,20 @@ let%expect_test "Map.t" =
       type 'a t = 'a Map.M(Int).t [@@deriving quickcheck, sexp, sexp_grammar]
     end)
   |> ok_exn;
-  [%expect {| (List (Many (List (Cons Integer (Cons (Any A) Empty))))) |}]
+  [%expect
+    {|
+    (Tagged
+     ((key sexp_grammar.assoc)
+      (value ())
+      (grammar
+       (List
+        (Many
+         (List
+          (Cons
+           (Tagged ((key sexp_grammar.assoc.key) (value ()) (grammar Integer)))
+           (Cons
+            (Tagged ((key sexp_grammar.assoc.value) (value ()) (grammar (Any A))))
+            Empty)))))))) |}]
 ;;
 
 let%expect_test "Hash_set.t" =
@@ -169,5 +182,18 @@ let%expect_test "Hashtbl.t" =
       type 'a t = 'a Hashtbl.M(Int).t [@@deriving quickcheck, sexp, sexp_grammar]
     end)
   |> ok_exn;
-  [%expect {| (List (Many (List (Cons Integer (Cons (Any A) Empty))))) |}]
+  [%expect
+    {|
+    (Tagged
+     ((key sexp_grammar.assoc)
+      (value ())
+      (grammar
+       (List
+        (Many
+         (List
+          (Cons
+           (Tagged ((key sexp_grammar.assoc.key) (value ()) (grammar Integer)))
+           (Cons
+            (Tagged ((key sexp_grammar.assoc.value) (value ()) (grammar (Any A))))
+            Empty)))))))) |}]
 ;;

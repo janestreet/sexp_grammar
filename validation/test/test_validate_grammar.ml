@@ -158,9 +158,7 @@ let%expect_test "[t_of_sexp] accepts input disobeying [t_sexp_grammar] by string
   require_ok [%here] (test_t_of_sexp sexp);
   [%expect {| |}];
   let test_validate_grammar sexp =
-    Staged.unstage
-      (Sexp_grammar_validation.validate_sexp [%sexp_grammar: Case_insensitive.t])
-      sexp
+    Staged.unstage (Sexp_grammar.validate_sexp [%sexp_grammar: Case_insensitive.t]) sexp
   in
   require_error [%here] [%sexp_of: unit] ~print_error:true (test_validate_grammar sexp);
   [%expect
@@ -228,7 +226,7 @@ let%expect_test "[spot_check_grammar]" =
 
 let%expect_test "validation failure messages" =
   let show_error untyped sexp =
-    let validate = Sexp_grammar_validation.validate_sexp { untyped } |> Staged.unstage in
+    let validate = Sexp_grammar.validate_sexp { untyped } |> Staged.unstage in
     require_error [%here] [%sexp_of: unit] (validate sexp) ~print_error:true
   in
   show_error Bool [%sexp 1];

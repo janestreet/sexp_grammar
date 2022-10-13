@@ -62,7 +62,7 @@ module V1 = struct
     ; tyvars : string list
     ; grammar : grammar
     }
-  [@@deriving bin_io, compare, sexp]
+  [@@deriving bin_io, compare, sexp, sexp_grammar]
 
   include struct
     open Base
@@ -243,7 +243,7 @@ module V2 = struct
     ; tyvars : string list
     ; grammar : grammar
     }
-  [@@deriving bin_io, compare, sexp]
+  [@@deriving bin_io, compare, sexp, sexp_grammar]
 
   include struct
     open Base
@@ -426,12 +426,12 @@ module V3 = struct
     ; tyvars : string list
     ; grammar : grammar
     }
-  [@@deriving bin_io, compare, sexp]
+  [@@deriving bin_io, compare, sexp, sexp_grammar]
 end
 
 module Grammar = struct
   module V1 = struct
-    type t = V1.grammar [@@deriving bin_io, compare, sexp]
+    type t = V1.grammar [@@deriving bin_io, compare, sexp, sexp_grammar]
 
     let to_grammar = V1.to_grammar
     let of_grammar = V1.of_grammar
@@ -440,7 +440,7 @@ module Grammar = struct
   end
 
   module V2 = struct
-    type t = V2.grammar [@@deriving bin_io, compare, sexp]
+    type t = V2.grammar [@@deriving bin_io, compare, sexp, sexp_grammar]
 
     let to_grammar = V2.to_grammar
     let of_grammar = V2.of_grammar
@@ -449,7 +449,7 @@ module Grammar = struct
   end
 
   module V3 = struct
-    type t = V3.grammar [@@deriving bin_io, compare, sexp]
+    type t = V3.grammar [@@deriving bin_io, compare, sexp, sexp_grammar]
 
     include (val Comparator.V1.make ~compare ~sexp_of_t)
   end

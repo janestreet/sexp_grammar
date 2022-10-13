@@ -1,5 +1,4 @@
 include Validate_grammar
-include Validate_sexp
 
 module Private = struct
   module Disobedient_generator = Disobedient_generator

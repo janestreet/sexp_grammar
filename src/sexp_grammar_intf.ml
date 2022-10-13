@@ -237,4 +237,17 @@ module type Sexp_grammar = sig
       This tag is ignored if its value is not a bool or if it is not placed on a variant
       constructor. *)
   val completion_suggested : string
+
+  (** [validate_sexp [%sexp_grammar: t]] prepares a function to report whether the grammar
+      of [t] accepts a sexp.
+
+      Staged because the outer application does a lot of work. It is often valuable to apply
+      [accepts] to a grammar once, then apply the result to multiple sexps. *)
+  val validate_sexp : _ t -> (Sexp.t -> unit Or_error.t) Staged.t
+
+  (** [validate_sexp_untyped] is like [validate_sexp] but takes the untyped grammar. *)
+  val validate_sexp_untyped : grammar -> (Sexp.t -> unit Or_error.t) Staged.t
+
+  (** [validate_sexp_list] is like [validate_sexp] but validates a sequence of sexps. *)
+  val validate_sexp_list : list_grammar -> (Sexp.t list -> unit Or_error.t) Staged.t
 end

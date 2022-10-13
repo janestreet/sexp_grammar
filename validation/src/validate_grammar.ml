@@ -9,7 +9,7 @@ let show_grammar (module M : With_grammar) =
 ;;
 
 let validate_acceptance ?config (module M : S) =
-  let validate = Staged.unstage (Validate_sexp.validate_sexp M.t_sexp_grammar) in
+  let validate = Staged.unstage (Sexp_grammar.validate_sexp M.t_sexp_grammar) in
   Base_quickcheck.Test.run
     ?config
     (module struct
@@ -104,7 +104,7 @@ let validate_grammar_poly1 ?test_count (module M : S1) =
 ;;
 
 let spot_check_grammar (type a) t_sexp_grammar t_of_sexp =
-  let grammar_accepts = unstage (Validate_sexp.validate_sexp t_sexp_grammar) in
+  let grammar_accepts = unstage (Sexp_grammar.validate_sexp t_sexp_grammar) in
   let t_of_sexp_accepts sexp =
     Or_error.try_with (fun () -> ignore (t_of_sexp sexp : a))
   in

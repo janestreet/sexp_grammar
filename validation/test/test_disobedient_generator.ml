@@ -18,8 +18,7 @@ let%expect_test "Yield of invalid sexps" =
   let test (module M : S) =
     let generator = create_unfiltered M.t_sexp_grammar in
     let accepts =
-      Staged.unstage (Sexp_grammar_validation.validate_sexp M.t_sexp_grammar)
-      >> Result.is_ok
+      Staged.unstage (Sexp_grammar.validate_sexp M.t_sexp_grammar) >> Result.is_ok
     in
     Base_quickcheck.Test.with_sample_exn generator ~f:(fun sequence ->
       let valid = Sequence.count sequence ~f:accepts in

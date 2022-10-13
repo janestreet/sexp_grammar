@@ -46,5 +46,23 @@ let%expect_test "complicated record" =
           (No_tag (
             (name     c)
             (required true)
-            (args (Cons (List (Many (List (Cons Bool (Cons Float Empty))))) Empty))))))))) |}]
+            (args (
+              Cons
+              (Tagged (
+                (key sexp_grammar.assoc)
+                (value ())
+                (grammar (
+                  List (
+                    Many (
+                      List (
+                        Cons
+                        (Tagged (
+                          (key sexp_grammar.assoc.key) (value ()) (grammar Bool)))
+                        (Cons
+                          (Tagged (
+                            (key sexp_grammar.assoc.value)
+                            (value ())
+                            (grammar Float)))
+                          Empty))))))))
+              Empty))))))))) |}]
 ;;

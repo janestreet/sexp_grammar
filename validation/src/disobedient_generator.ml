@@ -104,7 +104,7 @@ let create_unfiltered grammar =
 ;;
 
 let create grammar =
-  let validate = Staged.unstage (Validate_sexp.validate_sexp grammar) in
+  let validate = Staged.unstage (Sexp_grammar.validate_sexp grammar) in
   Generator.filter_map (create_unfiltered grammar) ~f:(fun sexp ->
     match validate sexp with
     | Ok () -> None

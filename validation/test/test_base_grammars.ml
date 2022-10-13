@@ -16,7 +16,20 @@ let%expect_test "[Hashtbl.m__t_sexp_grammar]" =
   end)
   |> Sexp_grammar_validation.validate_grammar
   |> require_ok [%here];
-  [%expect {| (List (Many (List (Cons Integer (Cons Integer Empty))))) |}]
+  [%expect
+    {|
+    (Tagged
+     ((key sexp_grammar.assoc)
+      (value ())
+      (grammar
+       (List
+        (Many
+         (List
+          (Cons
+           (Tagged ((key sexp_grammar.assoc.key) (value ()) (grammar Integer)))
+           (Cons
+            (Tagged ((key sexp_grammar.assoc.value) (value ()) (grammar Integer)))
+            Empty)))))))) |}]
 ;;
 
 let%expect_test "[Map.m__t_sexp_grammar]" =
@@ -25,7 +38,20 @@ let%expect_test "[Map.m__t_sexp_grammar]" =
   end)
   |> Sexp_grammar_validation.validate_grammar
   |> require_ok [%here];
-  [%expect {| (List (Many (List (Cons Integer (Cons Integer Empty))))) |}]
+  [%expect
+    {|
+    (Tagged
+     ((key sexp_grammar.assoc)
+      (value ())
+      (grammar
+       (List
+        (Many
+         (List
+          (Cons
+           (Tagged ((key sexp_grammar.assoc.key) (value ()) (grammar Integer)))
+           (Cons
+            (Tagged ((key sexp_grammar.assoc.value) (value ()) (grammar Integer)))
+            Empty)))))))) |}]
 ;;
 
 let%expect_test "[Set.m__t_sexp_grammar]" =
