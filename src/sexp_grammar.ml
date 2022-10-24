@@ -236,10 +236,8 @@ end = struct
              in
              tyvar_names, make_t))
     in
-    let lazy_tyvar_env = lazy (Map.empty (module String)) in
-    Staged.stage (fun ~tycon_env:_ ~tyvar_env:_ ->
+    Staged.stage (fun ~tycon_env:_ ~tyvar_env ->
       let tycon_env = Lazy.force lazy_tycon_env in
-      let tyvar_env = Lazy.force lazy_tyvar_env in
       Staged.unstage t ~tycon_env ~tyvar_env)
   ;;
 
