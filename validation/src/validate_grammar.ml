@@ -49,33 +49,20 @@ let validate_rejection ?config (module M : S) =
               (error : Error.t)])
 ;;
 
-module Known_to_accept_all_sexps_callbacks = struct
-  type t = bool
-  type list_t = unit
-
-  let any _ = true
-  let bool = false
-  let char = false
-  let integer = false
-  let float = false
-  let string = false
-  let option _ = false
-  let union list = List.exists list ~f:Fn.id
-  let list () = false
-  let empty = ()
-  let cons _ _ = ()
-  let many _ = ()
-  let record _ ~allow_extra_fields:_ = ()
-  let variant _ ~case_sensitivity:_ = false
-  let tyvar _ = false
-  let tycon _ ~params:_ = false
-  let recursive _ ~defns:_ = false
-  let lazy_ = Lazy.force
-  let tag b _ _ = b
-end
-
-module Known_to_accept_all_sexps =
-  Sexp_grammar.Fold_nonrecursive (Known_to_accept_all_sexps_callbacks)
+let rec known_to_accept_all_sexps (grammar : Sexp_grammar.grammar) : bool =
+  match Sexp_grammar.unroll_tycon_untyped grammar with
+  | Any _ -> true
+  | Bool | Char | Integer | Float | String | Option _ | List _ | Variant _ -> false
+  | Union grammars -> List.exists grammars ~f:known_to_accept_all_sexps
+  | Lazy lazy_grammar -> known_to_accept_all_sexps (Lazy.force lazy_grammar)
+  | Tagged { grammar; _ } -> known_to_accept_all_sexps grammar
+  | (Tycon _ | Tyvar _ | Recursive _) as unrolled ->
+    raise_s
+      [%message
+        "[unroll_tycon_untyped] removes [Tycon], [Tyvar], and [Recursive]"
+          (unrolled : Sexp_grammar.grammar)
+          (grammar : Sexp_grammar.grammar)]
+;;
 
 let validate_grammar ?test_count (module M : S) =
   let config =
@@ -84,7 +71,7 @@ let validate_grammar ?test_count (module M : S) =
   in
   show_grammar (module M);
   let%bind () = validate_acceptance ?config (module M) in
-  match Known_to_accept_all_sexps.of_typed_grammar M.t_sexp_grammar with
+  match known_to_accept_all_sexps M.t_sexp_grammar.untyped with
   | false -> validate_rejection ?config (module M)
   | true -> Ok ()
 ;;

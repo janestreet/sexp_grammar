@@ -1,4 +1,4 @@
-open! Base
+open! Core
 
 [@@@warning "-30"] (*_ allow duplicate field names *)
 
@@ -61,8 +61,8 @@ module type Callbacks_for_fold_nonrecursive = sig
   (** Callers must explicitly handle constructors for recursive grammars. *)
 
   val tyvar : string -> t
-  val tycon : string -> params:t list -> t
-  val recursive : t -> defns:(string, string list * t) List.Assoc.t -> t
+  val tycon : string -> params:t list -> defns:(string, string list * t) List.Assoc.t -> t
+  val recursive : string -> params:t list -> t
 end
 
 (** Callbacks for recursive folds. *)
@@ -131,8 +131,8 @@ module type Sexp_grammar = sig
     | Union of grammar list
     | Tagged of grammar with_tag
     | Tyvar of string
-    | Tycon of string * grammar list
-    | Recursive of grammar * defn list
+    | Tycon of string * grammar list * defn list
+    | Recursive of string * grammar list
     | Lazy of grammar Lazy.t
 
   and list_grammar = Sexp_grammar.list_grammar =
@@ -188,7 +188,7 @@ module type Sexp_grammar = sig
     }
 
   and 'a t = 'a Sexp_grammar.t = { untyped : grammar }
-  [@@unboxed] [@@deriving compare, equal, sexp_of]
+  [@@unboxed] [@@deriving bin_io, compare, equal, sexp]
 
   (** For stable serializations of these types, see [Sexp_grammar_stable]. *)
 
@@ -250,4 +250,14 @@ module type Sexp_grammar = sig
 
   (** [validate_sexp_list] is like [validate_sexp] but validates a sequence of sexps. *)
   val validate_sexp_list : list_grammar -> (Sexp.t list -> unit Or_error.t) Staged.t
+
+  (** [unroll_tycon [%sexp_grammar: t]] returns an equivalent grammar in which
+      the top-most node is not a [Tycon].
+
+      Acts as identity if the condition is already satisfied, and
+      does a shallow evaluation of the [Tycon] otherwise. *)
+  val unroll_tycon : 'a t -> 'a t
+
+  (** [unroll_tycon_untyped] is like [unroll_tycon] but takes the untyped grammar. *)
+  val unroll_tycon_untyped : grammar -> grammar
 end

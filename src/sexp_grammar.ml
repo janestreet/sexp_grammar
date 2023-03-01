@@ -1,6 +1,6 @@
 [@@@warning "-30"] (* allow duplicate field names *)
 
-open! Base
+open! Core
 include Sexp_grammar_intf
 
 open struct
@@ -17,7 +17,7 @@ module Case_sensitivity = struct
   module String_capitalized = struct
     type t = string [@@deriving sexp_of]
 
-    let compare = Comparable.lift String.compare ~f:String.capitalize
+    let compare a b = Comparable.lift String.compare ~f:String.capitalize a b
 
     include (val Comparator.make ~compare ~sexp_of_t)
   end
@@ -53,8 +53,8 @@ type grammar = Sexp_grammar.grammar =
   | Union of grammar list
   | Tagged of grammar with_tag
   | Tyvar of string
-  | Tycon of string * grammar list
-  | Recursive of grammar * defn list
+  | Tycon of string * grammar list * defn list
+  | Recursive of string * grammar list
   | Lazy of grammar Lazy.t
 
 and list_grammar = Sexp_grammar.list_grammar =
@@ -108,10 +108,10 @@ and defn = Sexp_grammar.defn =
   ; tyvars : string list
   ; grammar : grammar
   }
-[@@deriving compare, equal, sexp_of]
+[@@deriving bin_io, compare, equal, sexp]
 
 type 'a t = 'a Sexp_grammar.t = { untyped : grammar }
-[@@unboxed] [@@deriving compare, equal, sexp_of]
+[@@unboxed] [@@deriving bin_io, compare, equal, sexp]
 
 let coerce = Sexp_grammar.coerce
 
@@ -199,12 +199,13 @@ end = struct
       | Some x -> x)
   ;;
 
-  let tycon tycon_name ~params =
-    Staged.stage (fun ~tycon_env ~tyvar_env ->
+  let tycon_generic tycon_name ~params =
+    Staged.stage (fun ~tycon_env_for_name ~tycon_env_for_params ~tyvar_env ->
       let params =
-        List.map params ~f:(fun t -> Staged.unstage t ~tycon_env ~tyvar_env)
+        List.map params ~f:(fun t ->
+          Staged.unstage t ~tycon_env:tycon_env_for_params ~tyvar_env)
       in
-      match Map.find tycon_env tycon_name with
+      match Map.find tycon_env_for_name tycon_name with
       | None -> raise_s [%message "unbound type constructor in grammar" ~tycon_name]
       | Some (tyvar_names, make_t) ->
         (match List.zip tyvar_names params with
@@ -217,9 +218,20 @@ end = struct
             | `Ok new_tyvar_env -> Staged.unstage make_t ~tyvar_env:new_tyvar_env)))
   ;;
 
-  let recursive t ~defns =
+  let recursive tycon_name ~params =
+    let generic = tycon_generic tycon_name ~params in
+    Staged.stage (fun ~tycon_env ~tyvar_env ->
+      Staged.unstage
+        generic
+        ~tycon_env_for_name:tycon_env
+        ~tycon_env_for_params:tycon_env
+        ~tyvar_env)
+  ;;
+
+  let tycon tycon_name ~params ~defns =
+    let generic = tycon_generic tycon_name ~params in
     (* We define our new environments lazily. We only force them in staged functions. *)
-    let rec lazy_tycon_env =
+    let rec lazy_tycon_env_for_name =
       lazy
         (match Map.of_alist (module String) defns with
          | `Duplicate_key tycon_name ->
@@ -228,7 +240,7 @@ end = struct
            Map.map defns ~f:(fun (tyvar_names, defn) ->
              let make_t =
                Staged.stage (fun ~tyvar_env ->
-                 let tycon_env = Lazy.force lazy_tycon_env in
+                 let tycon_env = Lazy.force lazy_tycon_env_for_name in
                  (* This [of_lazy_recursive] allows the recursion to stop unrolling at
                     some point. *)
                  Callbacks.of_lazy_recursive
@@ -236,9 +248,9 @@ end = struct
              in
              tyvar_names, make_t))
     in
-    Staged.stage (fun ~tycon_env:_ ~tyvar_env ->
-      let tycon_env = Lazy.force lazy_tycon_env in
-      Staged.unstage t ~tycon_env ~tyvar_env)
+    Staged.stage (fun ~tycon_env:tycon_env_for_params ~tyvar_env ->
+      let tycon_env_for_name = Lazy.force lazy_tycon_env_for_name in
+      Staged.unstage generic ~tycon_env_for_name ~tycon_env_for_params ~tyvar_env)
   ;;
 
   let lazy_ lazy_t =
@@ -272,14 +284,15 @@ module Fold_nonrecursive (Callbacks : Callbacks_for_fold_nonrecursive) :
       List.map clauses ~f:of_clause_with_tag_list |> Callbacks.variant ~case_sensitivity
     | Union grammars -> Callbacks.union (List.map ~f:of_grammar grammars)
     | Tyvar tyvar_name -> Callbacks.tyvar tyvar_name
-    | Tycon (tycon_name, params) ->
-      Callbacks.tycon tycon_name ~params:(List.map ~f:of_grammar params)
-    | Recursive (grammar, defns) ->
+    | Tycon (tycon, params, defns) ->
+      let params = List.map ~f:of_grammar params in
       let defns =
         List.map defns ~f:(fun { tycon; tyvars; grammar } ->
           tycon, (tyvars, of_grammar grammar))
       in
-      Callbacks.recursive (of_grammar grammar) ~defns
+      Callbacks.tycon tycon ~params ~defns
+    | Recursive (tycon_name, params) ->
+      Callbacks.recursive tycon_name ~params:(List.map ~f:of_grammar params)
     | Lazy lazy_grammar -> Callbacks.lazy_ (Lazy.map ~f:of_grammar lazy_grammar)
     | Tagged { key; value; grammar } -> Callbacks.tag (of_grammar grammar) key value
 
@@ -377,13 +390,13 @@ module Copy_callbacks = struct
   ;;
 
   let tyvar name = Tyvar name
-  let tycon name ~params = Tycon (name, params)
+  let recursive name ~params = Recursive (name, params)
 
-  let recursive grammar ~defns =
+  let tycon tycon_name ~params ~defns =
     let defns =
       List.map defns ~f:(fun (tycon, (tyvars, grammar)) -> { tycon; tyvars; grammar })
     in
-    Recursive (grammar, defns)
+    Tycon (tycon_name, params, defns)
   ;;
 end
 
@@ -413,7 +426,7 @@ let first_tag_value tags name of_sexp =
   | Some value -> Some (Or_error.try_with (fun () -> of_sexp value))
 ;;
 
-let completion_suggested = "completion-suggested"
+let completion_suggested = Sexp_grammar.completion_suggested
 
 module Validation = Fold_recursive (struct
     open Or_error.Let_syntax
@@ -623,3 +636,96 @@ module Validation = Fold_recursive (struct
 let validate_sexp = Validation.of_typed_grammar_exn
 let validate_sexp_untyped = Validation.of_grammar_exn
 let validate_sexp_list = Validation.of_list_grammar_exn
+
+let rec map_tag_list tag_list ~f =
+  match tag_list with
+  | No_tag grammar -> No_tag (f grammar)
+  | Tag { key; value; grammar } -> Tag { key; value; grammar = map_tag_list grammar ~f }
+;;
+
+let subst_tycon_body ~name ~params ~defns =
+  let defn =
+    match List.find defns ~f:(fun { tycon; _ } -> String.equal tycon name) with
+    | Some defn -> defn
+    | None ->
+      raise_s
+        [%message
+          "could not find sexp grammar definition" (name : string) (defns : defn list)]
+  in
+  let tyvar_env =
+    match List.zip defn.tyvars params with
+    | Ok alist -> String.Map.of_alist_exn alist
+    | Unequal_lengths ->
+      raise_s
+        [%message
+          "wrong number of type variable parameters"
+            (name : string)
+            (defn : defn)
+            (params : grammar list)]
+  in
+  let on_tyvar name =
+    match Map.find tyvar_env name with
+    | Some grammar -> grammar
+    | None ->
+      raise_s
+        [%message
+          "could not find type parameter"
+            (name : string)
+            (tyvar_env : grammar String.Map.t)]
+  in
+  let rec on_grammar grammar =
+    match grammar with
+    | Any _ | Bool | Char | Integer | Float | String -> grammar
+    | Option grammar -> Option (on_grammar grammar)
+    | List list_grammar -> List (on_list_grammar list_grammar)
+    | Variant { case_sensitivity; clauses } ->
+      Variant
+        { case_sensitivity; clauses = List.map clauses ~f:(map_tag_list ~f:on_clause) }
+    | Union grammars -> Union (List.map grammars ~f:on_grammar)
+    | Tagged { key; value; grammar } ->
+      Tagged { key; value; grammar = on_grammar grammar }
+    | Tyvar name -> on_tyvar name
+    | Recursive (tycon_name, params) ->
+      Tycon (tycon_name, List.map params ~f:on_grammar, defns)
+    | Lazy lazy_grammar -> Lazy (Lazy.map lazy_grammar ~f:on_grammar)
+    | Tycon (name, params, defns) -> Tycon (name, List.map params ~f:on_grammar, defns)
+  and on_list_grammar list_grammar =
+    match list_grammar with
+    | Empty -> Empty
+    | Cons (first, rest) -> Cons (on_grammar first, on_list_grammar rest)
+    | Many grammar -> Many (on_grammar grammar)
+    | Fields { allow_extra_fields; fields } ->
+      Fields
+        { allow_extra_fields; fields = List.map fields ~f:(map_tag_list ~f:on_field) }
+  and on_clause { name; clause_kind } = { name; clause_kind = on_clause_kind clause_kind }
+  and on_clause_kind = function
+    | Atom_clause -> Atom_clause
+    | List_clause { args } -> List_clause { args = on_list_grammar args }
+  and on_field { name; required; args } =
+    { name; required; args = on_list_grammar args }
+  in
+  on_grammar defn.grammar
+;;
+
+let rec unroll_tycon_untyped grammar =
+  match grammar with
+  | Any _
+  | Bool
+  | Char
+  | Integer
+  | Float
+  | String
+  | Option _
+  | List _
+  | Variant _
+  | Union _
+  | Tagged _
+  | Tyvar _
+  | Recursive _
+  | Lazy _ -> grammar
+  | Tycon (name, params, defns) ->
+    let result = subst_tycon_body ~name ~params ~defns |> unroll_tycon_untyped in
+    (fun x -> x) (fun x -> x) result
+;;
+
+let unroll_tycon { untyped } = { untyped = unroll_tycon_untyped untyped }

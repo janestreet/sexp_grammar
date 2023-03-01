@@ -289,8 +289,9 @@ let%expect_test _ =
   |> ok_exn;
   [%expect
     {|
-    (Recursive
-     (Tycon tree (Integer))
+    (Tycon
+     tree
+     (Integer)
      ((
       (tycon tree)
       (tyvars (a))
@@ -303,7 +304,7 @@ let%expect_test _ =
             (No_tag
              ((name children)
               (required true)
-              (args (Cons (List (Many (Tycon tree ((Tyvar a))))) Empty))))))))))))) |}]
+              (args (Cons (List (Many (Recursive tree ((Tyvar a))))) Empty))))))))))))) |}]
 ;;
 
 include struct
@@ -324,8 +325,9 @@ let%expect_test _ =
   |> ok_exn;
   [%expect
     {|
-    (Recursive
-     (Tycon alpha ())
+    (Tycon
+     alpha
+     ()
      (((tycon alpha) (tyvars ()) (grammar Integer))
       ((tycon beta)
        (tyvars ())
@@ -335,11 +337,13 @@ let%expect_test _ =
           ((allow_extra_fields false)
            (fields
             ((No_tag
-              ((name alpha) (required true) (args (Cons (Tycon alpha ()) Empty))))
+              ((name alpha)
+               (required true)
+               (args (Cons (Recursive alpha ()) Empty))))
              (No_tag
               ((name betas)
                (required true)
-               (args (Cons (List (Many (Tycon beta ()))) Empty))))))))))))) |}]
+               (args (Cons (List (Many (Recursive beta ()))) Empty))))))))))))) |}]
 ;;
 
 include struct
@@ -360,8 +364,9 @@ let%expect_test _ =
   |> ok_exn;
   [%expect
     {|
-    (Recursive
-     (Tycon beta ())
+    (Tycon
+     beta
+     ()
      (((tycon alpha) (tyvars ()) (grammar Integer))
       ((tycon beta)
        (tyvars ())
@@ -371,11 +376,13 @@ let%expect_test _ =
           ((allow_extra_fields false)
            (fields
             ((No_tag
-              ((name alpha) (required true) (args (Cons (Tycon alpha ()) Empty))))
+              ((name alpha)
+               (required true)
+               (args (Cons (Recursive alpha ()) Empty))))
              (No_tag
               ((name betas)
                (required true)
-               (args (Cons (List (Many (Tycon beta ()))) Empty))))))))))))) |}]
+               (args (Cons (List (Many (Recursive beta ()))) Empty))))))))))))) |}]
 ;;
 
 include struct
@@ -394,8 +401,9 @@ let%expect_test _ =
     {|
     (List
      (Many
-      (Recursive
-       (Tycon beta ())
+      (Tycon
+       beta
+       ()
        (((tycon alpha) (tyvars ()) (grammar Integer))
         ((tycon beta)
          (tyvars ())
@@ -407,11 +415,11 @@ let%expect_test _ =
               ((No_tag
                 ((name alpha)
                  (required true)
-                 (args (Cons (Tycon alpha ()) Empty))))
+                 (args (Cons (Recursive alpha ()) Empty))))
                (No_tag
                 ((name betas)
                  (required true)
-                 (args (Cons (List (Many (Tycon beta ()))) Empty))))))))))))))) |}]
+                 (args (Cons (List (Many (Recursive beta ()))) Empty))))))))))))))) |}]
 ;;
 
 include struct

@@ -21,128 +21,9 @@ module _ : module type of struct
   include Sexp_grammar_stable
 end [@ocaml.remove_aliases] = struct
   module Grammar = struct
-    module V1 = struct
+    module V4 = struct
       open struct
-        module T = Sexp_grammar_stable.Grammar.V1
-      end
-
-      include (
-        T : Stable with type t = T.t with type comparator_witness = T.comparator_witness)
-
-      let t_sexp_grammar = T.t_sexp_grammar
-      let to_grammar = T.to_grammar
-      let of_grammar = T.of_grammar
-
-      let%expect_test _ =
-        print_and_check_stable_type
-          [%here]
-          (module T)
-          (List.map ~f:T.of_grammar example_grammars);
-        [%expect
-          {|
-          (bin_shape_digest 84c03b5f322e69fd22373ed914009e60)
-          ((sexp (List Empty)) (bin_io "\b\000"))
-          ((sexp   Bool)
-           (bin_io "\001"))
-          ((sexp (
-             Option (
-               List (
-                 Many (
-                   Variant (
-                     (name_kind Capitalized)
-                     (clauses (
-                       ((name First)  (args (Cons Integer Empty)))
-                       ((name Second) (args (Cons Float   Empty)))))))))))
-           (bin_io "\007\b\002\t\001\002\005First\001\003\000\006Second\001\004\000"))
-          ((sexp (
-             Lazy (
-               Recursive
-               (Tycon binary_tree ())
-               ((
-                 (tycon binary_tree)
-                 (tyvars ())
-                 (grammar (
-                   Union (
-                     (Enum ((name_kind Capitalized) (names (Leaf))))
-                     (Variant (
-                       (name_kind Capitalized)
-                       (clauses ((
-                         (name Node)
-                         (args (
-                           Cons
-                           (Tycon binary_tree ())
-                           (Cons (Tycon binary_tree ()) Empty))))))))))))))))
-           (bin_io
-            "\014\r\012\011binary_tree\000\001\011binary_tree\000\n\002\006\001\001\004Leaf\t\001\001\004Node\001\012\011binary_tree\000\001\012\011binary_tree\000\000"))
-          ((sexp (List Empty)) (bin_io "\b\000")) |}]
-      ;;
-    end
-
-    module V2 = struct
-      open struct
-        module T = Sexp_grammar_stable.Grammar.V2
-      end
-
-      include (
-        T : Stable with type t = T.t with type comparator_witness = T.comparator_witness)
-
-      let t_sexp_grammar = T.t_sexp_grammar
-      let to_grammar = T.to_grammar
-      let of_grammar = T.of_grammar
-
-      let%expect_test _ =
-        print_and_check_stable_type
-          [%here]
-          (module T)
-          (List.map ~f:T.of_grammar example_grammars);
-        [%expect
-          {|
-          (bin_shape_digest 351d08efb322ce8b9cf8124e41f3d248)
-          ((sexp (List Empty)) (bin_io "\007\000"))
-          ((sexp   Bool)
-           (bin_io "\001"))
-          ((sexp (
-             Option (
-               List (
-                 Many (
-                   Variant (
-                     (name_kind Capitalized)
-                     (clauses (
-                       ((name First)
-                        (clause_kind (List_clause (args (Cons Integer Empty)))))
-                       ((name Second)
-                        (clause_kind (List_clause (args (Cons Float Empty)))))))))))))
-           (bin_io
-            "\006\007\002\b\001\002\005First\001\001\003\000\006Second\001\001\004\000"))
-          ((sexp (
-             Lazy (
-               Recursive
-               (Tycon binary_tree ())
-               ((
-                 (tycon binary_tree)
-                 (tyvars ())
-                 (grammar (
-                   Variant (
-                     (name_kind Capitalized)
-                     (clauses (
-                       ((name        Leaf)
-                        (clause_kind Atom_clause))
-                       ((name Node)
-                        (clause_kind (
-                          List_clause (
-                            args (
-                              Cons
-                              (Tycon binary_tree ())
-                              (Cons (Tycon binary_tree ()) Empty))))))))))))))))
-           (bin_io
-            "\r\012\011\011binary_tree\000\001\011binary_tree\000\b\001\002\004Leaf\000\004Node\001\001\011\011binary_tree\000\001\011\011binary_tree\000\000"))
-          ((sexp (List Empty)) (bin_io "\007\000")) |}]
-      ;;
-    end
-
-    module V3 = struct
-      open struct
-        module T = Sexp_grammar_stable.Grammar.V3
+        module T = Sexp_grammar_stable.Grammar.V4
       end
 
       include (
@@ -154,7 +35,7 @@ end [@ocaml.remove_aliases] = struct
         print_and_check_stable_type [%here] (module T) example_grammars;
         [%expect
           {|
-          (bin_shape_digest 441ef514ccf19b6bfaaf348b2074bc2c)
+          (bin_shape_digest 2b208c8f56151b7eaa218daab3ea0a58)
           ((sexp (List Empty)) (bin_io "\007\000"))
           ((sexp   Bool)
            (bin_io "\001"))
@@ -175,8 +56,8 @@ end [@ocaml.remove_aliases] = struct
             "\006\007\002\b\002\002\001\005First\001\001\003\000\001\006Second\001\001\004\000"))
           ((sexp (
              Lazy (
-               Recursive
-               (Tycon binary_tree ())
+               Tycon binary_tree
+               ()
                ((
                  (tycon binary_tree)
                  (tyvars ())
@@ -193,10 +74,10 @@ end [@ocaml.remove_aliases] = struct
                            List_clause (
                              args (
                                Cons
-                               (Tycon binary_tree ())
-                               (Cons (Tycon binary_tree ()) Empty)))))))))))))))))
+                               (Recursive binary_tree ())
+                               (Cons (Recursive binary_tree ()) Empty)))))))))))))))))
            (bin_io
-            "\014\r\012\011binary_tree\000\001\011binary_tree\000\b\002\002\001\004Leaf\000\001\004Node\001\001\012\011binary_tree\000\001\012\011binary_tree\000\000"))
+            "\014\012\011binary_tree\000\001\011binary_tree\000\b\002\002\001\004Leaf\000\001\004Node\001\001\r\011binary_tree\000\001\r\011binary_tree\000\000"))
           ((sexp (
              Tagged (
                (key   key)

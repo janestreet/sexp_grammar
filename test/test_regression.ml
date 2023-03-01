@@ -67,21 +67,17 @@ let%expect_test "tyvar inside recursion body" =
    ... (Recursive (Tycon l ((Tycon t ()))) ...) ... *)
 let%expect_test "tycon inside recursion body" =
   test
-    ~cr:CR_soon
     (module struct
       type 'a u = U of 'a u [@@deriving quickcheck, sexp, sexp_grammar]
       type t = T of t u [@@deriving quickcheck, sexp, sexp_grammar]
     end);
-  [%expect
-    {|
-    ("unexpectedly raised" ("unbound type constructor in grammar" (tycon_name t))) |}]
+  [%expect {| |}]
 ;;
 
 (* This test shows a case where a type can refer to another type
    of the same base name. *)
 let%expect_test "tycon inside recursion body with same base name" =
   test
-    ~cr:CR_soon
     (module struct
       module T = struct
         type 'a t = { this : 'a t } [@@deriving quickcheck, sexp, sexp_grammar]
@@ -89,10 +85,7 @@ let%expect_test "tycon inside recursion body with same base name" =
 
       type t = { that : t T.t } [@@deriving quickcheck, sexp, sexp_grammar]
     end);
-  [%expect
-    {|
-    ("unexpectedly raised" (
-      "type constructor arity mismatch in grammar" (tycon_name t))) |}]
+  [%expect {| |}]
 ;;
 
 (* This test shows a case where a recursive type can transitively depend on another type
@@ -100,7 +93,6 @@ let%expect_test "tycon inside recursion body with same base name" =
 *)
 let%expect_test "tycon inside recursion body with same explicitly qualified name" =
   test
-    ~cr:CR_soon
     (module struct
       module T = struct
         type 'a t = { this : 'a t } [@@deriving quickcheck, sexp, sexp_grammar]
@@ -111,17 +103,13 @@ let%expect_test "tycon inside recursion body with same explicitly qualified name
 
       type t = { that : t u } [@@deriving quickcheck, sexp, sexp_grammar]
     end);
-  [%expect
-    {|
-      ("unexpectedly raised" (
-        "type constructor arity mismatch in grammar" (tycon_name t))) |}]
+  [%expect {| |}]
 ;;
 
 (* This test shows a case where a type can transitively depend on another type
    which has the same name in (essentially) the same scope. *)
 let%expect_test "tycon inside recursion body with same fully qualified name" =
   test
-    ~cr:CR_soon
     (module struct
       open struct
         type 'a t = { this : 'a t } [@@deriving quickcheck, sexp, sexp_grammar]
@@ -130,8 +118,5 @@ let%expect_test "tycon inside recursion body with same fully qualified name" =
 
       type t = { that : t u } [@@deriving quickcheck, sexp, sexp_grammar]
     end);
-  [%expect
-    {|
-    ("unexpectedly raised" (
-      "type constructor arity mismatch in grammar" (tycon_name t))) |}]
+  [%expect {| |}]
 ;;

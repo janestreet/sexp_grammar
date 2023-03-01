@@ -337,3 +337,18 @@ let%expect_test "validation failure messages" =
   M.show_error [%sexp [ A ]];
   [%expect {| ("invalid \"A\" variant; expected an atom but got a list" (sexp (A))) |}]
 ;;
+
+let%expect_test "[validate_grammar] terminates on [Any] behind [Tycon]" =
+  require_valid
+    (module struct
+      type t = unit [@@deriving compare, quickcheck, sexp]
+
+      let t_sexp_grammar : t Sexp_grammar.t =
+        { untyped =
+            Sexp_grammar.Tycon
+              ("t", [], [ { tycon = "t"; tyvars = []; grammar = Any "Unit" } ])
+        }
+      ;;
+    end);
+  [%expect {| (Tycon t () (((tycon t) (tyvars ()) (grammar (Any Unit))))) |}]
+;;
