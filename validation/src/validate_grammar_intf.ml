@@ -1,7 +1,9 @@
 open! Base
 
 module type S = sig
-  type t [@@deriving quickcheck, sexp, sexp_grammar]
+  type t [@@deriving sexp, sexp_grammar]
+
+  include Base_quickcheck.Test.S with type t := t
 end
 
 module type S1 = sig

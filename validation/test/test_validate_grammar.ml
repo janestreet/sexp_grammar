@@ -66,11 +66,9 @@ let%expect_test "[sexp_of_t] output disobeys [t_sexp_grammar]" =
       (input (0 1))
       (error (
         "[t_sexp_grammar] rejects sexp from [sexp_of_t]"
-        ("Some items in list did not satisfy grammar."
-         (("invalid bool" (
-            reason (Of_sexp_error "bool_of_sexp: unknown string" (invalid_sexp 0))))
-          ("invalid bool" (
-            reason (Of_sexp_error "bool_of_sexp: unknown string" (invalid_sexp 1))))))))) |}];
+        ("An item in list did not satisfy grammar." (
+          "invalid bool" (
+            reason (Of_sexp_error "bool_of_sexp: unknown string" (invalid_sexp 0)))))))) |}];
   require_invalid
     (module struct
       type t = int [@@deriving compare, quickcheck, sexp_grammar]
@@ -278,11 +276,9 @@ let%expect_test "validation failure messages" =
   show_error (List (Many Bool)) [%sexp [ 1; 2 ]];
   [%expect
     {|
-    ("Some items in list did not satisfy grammar."
-     (("invalid bool" (
-        reason (Of_sexp_error "bool_of_sexp: unknown string" (invalid_sexp 1))))
-      ("invalid bool" (
-        reason (Of_sexp_error "bool_of_sexp: unknown string" (invalid_sexp 2)))))) |}];
+    ("An item in list did not satisfy grammar." (
+      "invalid bool" (
+        reason (Of_sexp_error "bool_of_sexp: unknown string" (invalid_sexp 1))))) |}];
   show_error (Union [ Char; Bool ]) [%sexp 11];
   [%expect
     {|
@@ -351,4 +347,239 @@ let%expect_test "[validate_grammar] terminates on [Any] behind [Tycon]" =
       ;;
     end);
   [%expect {| (Tycon t () (((tycon t) (tyvars ()) (grammar (Any Unit))))) |}]
+;;
+
+let%expect_test "[validate_sexp] does not explode on misbehaved [Cons]" =
+  let module M = struct
+    type t =
+      [ `A of int
+      | `B of t
+      | `C of t
+      ]
+    [@@deriving compare, quickcheck, sexp]
+
+    let (t_sexp_grammar : t Sexp_grammar.t) =
+      { untyped =
+          Tycon
+            ( "t"
+            , []
+            , [ { tycon = "t"
+                ; tyvars = []
+                ; grammar =
+                    Union
+                      [ List
+                          (Cons
+                             ( Variant
+                                 { case_sensitivity = Case_sensitive
+                                 ; clauses =
+                                     [ No_tag { name = "A"; clause_kind = Atom_clause } ]
+                                 }
+                             , Cons (Integer, Empty) ))
+                      ; List
+                          (Cons
+                             ( Variant
+                                 { case_sensitivity = Case_sensitive
+                                 ; clauses =
+                                     [ No_tag { name = "B"; clause_kind = Atom_clause } ]
+                                 }
+                             , Cons (Recursive ("t", []), Empty) ))
+                      ; List
+                          (Cons
+                             ( Variant
+                                 { case_sensitivity = Case_sensitive
+                                 ; clauses =
+                                     [ No_tag { name = "C"; clause_kind = Atom_clause } ]
+                                 }
+                             , Cons (Recursive ("t", []), Empty) ))
+                      ]
+                }
+              ] )
+      }
+    ;;
+  end
+  in
+  let validate = Staged.unstage (Sexp_grammar.validate_sexp M.t_sexp_grammar) in
+  let example_sexp =
+    Sexplib.Sexp.of_string
+      {|
+   (C (C (C (C (C (C (C (C (C (C (C (C (C (C (C (C (C (C (C (C (C (C (C (A 0))))))))))))))))))))))))
+      |}
+  in
+  require_ok [%here] (validate example_sexp);
+  [%expect {| |}]
+;;
+
+let%expect_test "[validate_grammar] does not explode on misbehaved [Many]" =
+  let module M = struct
+    type a_layer = [ `A | `T of t ] list
+    and b_layer = [ `B | `T of t ] list
+
+    and t =
+      [ `A_layer of a_layer
+      | `B_layer of b_layer
+      ]
+    [@@deriving compare, quickcheck]
+
+    let rec sexp_of_t = function
+      | `A_layer a_layer -> sexp_of_a_layer a_layer
+      | `B_layer b_layer -> sexp_of_b_layer b_layer
+
+    and sexp_of_a_layer a_layer =
+      List.sexp_of_t
+        (function
+          | `A -> Sexp.Atom "A"
+          | `T t -> sexp_of_t t)
+        a_layer
+
+    and sexp_of_b_layer b_layer =
+      List.sexp_of_t
+        (function
+          | `B -> Sexp.Atom "B"
+          | `T t -> sexp_of_t t)
+        b_layer
+    ;;
+
+    let _ = sexp_of_t
+
+    let rec t_of_sexp : Sexp.t -> t = function
+      | Atom a -> raise_s [%message "unexpected atom" a]
+      | List elts as sexp ->
+        if List.mem elts (Sexp.Atom "B") ~equal:Sexp.equal
+        then `B_layer (b_layer_of_sexp sexp)
+        else `A_layer (a_layer_of_sexp sexp)
+
+    and a_layer_of_sexp sexp =
+      List.t_of_sexp
+        (function
+          | Atom "A" -> `A
+          | List _ as sexp -> `T (t_of_sexp sexp)
+          | Atom a -> raise_s [%message "wrong atom" a])
+        sexp
+
+    and b_layer_of_sexp sexp =
+      List.t_of_sexp
+        (function
+          | Atom "B" -> `B
+          | List _ as sexp -> `T (t_of_sexp sexp)
+          | Atom a -> raise_s [%message "wrong atom" a])
+        sexp
+    ;;
+
+    let _ = t_of_sexp
+
+    let defns : Sexp_grammar.defn list =
+      [ { tycon = "t"
+        ; tyvars = []
+        ; grammar = Union [ Recursive ("a_layer", []); Recursive ("b_layer", []) ]
+        }
+      ; { tycon = "a_layer"
+        ; tyvars = []
+        ; grammar =
+            List
+              (Many
+                 (Union
+                    [ Variant
+                        { case_sensitivity = Case_sensitive
+                        ; clauses = [ No_tag { name = "A"; clause_kind = Atom_clause } ]
+                        }
+                    ; Recursive ("t", [])
+                    ]))
+        }
+      ; { tycon = "b_layer"
+        ; tyvars = []
+        ; grammar =
+            List
+              (Many
+                 (Union
+                    [ Variant
+                        { case_sensitivity = Case_sensitive
+                        ; clauses = [ No_tag { name = "B"; clause_kind = Atom_clause } ]
+                        }
+                    ; Recursive ("t", [])
+                    ]))
+        }
+      ]
+    ;;
+
+    let t_sexp_grammar : t Sexp_grammar.t = { untyped = Tycon ("t", [], defns) }
+  end
+  in
+  let validate = Staged.unstage (Sexp_grammar.validate_sexp M.t_sexp_grammar) in
+  let example_sexp =
+    Sexplib.Sexp.of_string
+      {|
+   (A (A (A (A (A (A (A (A (A (A (A (A (A (A (A (A (A (A (A (A (A (A (A (A))))))))))))))))))))))))
+      |}
+  in
+  require_ok [%here] (validate example_sexp);
+  [%expect {| |}]
+;;
+
+let%expect_test "[validate_sexp] does not explode on recomputed left side of infix \
+                 operator"
+  =
+  let module M = struct
+    type t =
+      [ `Int of int
+      | `Add of t * t
+      | `Sub of t * t
+      | `Mul of t * t
+      | `Div of t * t
+      ]
+    [@@deriving compare, quickcheck]
+
+    let rec sexp_of_t = function
+      | `Int i -> sexp_of_int i
+      | `Add (t1, t2) -> Sexp.List [ sexp_of_t t1; Sexp.Atom "+"; sexp_of_t t2 ]
+      | `Sub (t1, t2) -> Sexp.List [ sexp_of_t t1; Sexp.Atom "-"; sexp_of_t t2 ]
+      | `Mul (t1, t2) -> Sexp.List [ sexp_of_t t1; Sexp.Atom "*"; sexp_of_t t2 ]
+      | `Div (t1, t2) -> Sexp.List [ sexp_of_t t1; Sexp.Atom "/"; sexp_of_t t2 ]
+    ;;
+
+    let _ = sexp_of_t
+
+    let rec t_of_sexp : Sexp.t -> t = function
+      | Atom _ as sexp -> `Int (int_of_sexp sexp)
+      | List [ left; Atom "+"; right ] -> `Add (t_of_sexp left, t_of_sexp right)
+      | List [ left; Atom "-"; right ] -> `Sub (t_of_sexp left, t_of_sexp right)
+      | List [ left; Atom "*"; right ] -> `Mul (t_of_sexp left, t_of_sexp right)
+      | List [ left; Atom "/"; right ] -> `Div (t_of_sexp left, t_of_sexp right)
+      | List _ as sexp -> raise_s [%message "unexpected list shape" (sexp : Sexp.t)]
+    ;;
+
+    let _ = t_of_sexp
+
+    let (t_sexp_grammar : t Sexp_grammar.t) =
+      let binop op : Sexp_grammar.grammar =
+        List
+          (Cons
+             ( Recursive ("t", [])
+             , Cons
+                 ( Variant
+                     { case_sensitivity = Case_sensitive
+                     ; clauses = [ No_tag { name = op; clause_kind = Atom_clause } ]
+                     }
+                 , Cons (Recursive ("t", []), Empty) ) ))
+      in
+      { untyped =
+          Tycon
+            ( "t"
+            , []
+            , [ { tycon = "t"
+                ; tyvars = []
+                ; grammar = Union [ Integer; binop "+"; binop "-"; binop "*"; binop "/" ]
+                }
+              ] )
+      }
+    ;;
+  end
+  in
+  let validate = Staged.unstage (Sexp_grammar.validate_sexp M.t_sexp_grammar) in
+  let depth = 15 in
+  let example_sexp =
+    List.fold (List.range 0 depth) ~init:(Sexp.Atom "1") ~f:(fun sexp _ ->
+      Sexp.List [ sexp; Atom "*"; Atom "1" ])
+  in
+  require_ok [%here] (validate example_sexp);
+  [%expect {| |}]
 ;;

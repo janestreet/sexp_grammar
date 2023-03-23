@@ -86,7 +86,10 @@ let validate_grammar_poly1 ?test_count (module M : S1) =
   validate_grammar
     ?test_count
     (module struct
-      type t = A.t M.t [@@deriving quickcheck, sexp, sexp_grammar]
+      type t = A.t M.t [@@deriving sexp, sexp_grammar]
+
+      let quickcheck_generator = [%quickcheck.generator: A.t M.t]
+      let quickcheck_shrinker = [%quickcheck.shrinker: A.t M.t]
     end)
 ;;
 

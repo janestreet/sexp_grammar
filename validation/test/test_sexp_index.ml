@@ -6,8 +6,7 @@ let the_sexp = "((foo 1) (bar ((2 3))) (baz 4))" |> Parsexp.Single.parse_string_
 let%expect_test "[parent]" =
   let test sexp =
     List.iter (Sexp_index.enumerate sexp) ~f:(fun i ->
-      print_s
-        [%sexp (i : Sexp_index.t), (Sexp_index.parent i : Sexp_index.t Or_error.t)])
+      print_s [%sexp (i : Sexp_index.t), (Sexp_index.parent i : Sexp_index.t Or_error.t)])
   in
   test the_sexp;
   [%expect

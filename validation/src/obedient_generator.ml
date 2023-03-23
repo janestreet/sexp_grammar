@@ -2,11 +2,13 @@ open! Core
 open Base_quickcheck
 open Generator.Let_syntax
 
-module Generate_callbacks = struct
-  type t = Sexp.t Generator.t
+let rec without_tag_list grammar =
+  match (grammar : 'a Sexp_grammar.with_tag_list) with
+  | No_tag grammar -> grammar
+  | Tag { key = _; value = _; grammar } -> without_tag_list grammar
+;;
 
-  let any _ = Generator.sexp
-
+module Generate = struct
   module type S = sig
     type t [@@deriving quickcheck, sexp_of]
   end
@@ -14,13 +16,6 @@ module Generate_callbacks = struct
   let of_type (module M : S) =
     [%quickcheck.generator: M.t] |> Generator.map ~f:[%sexp_of: M.t]
   ;;
-
-  let bool = of_type (module Bool)
-  let char = of_type (module Char)
-  let integer = of_type (module Bigint)
-  let float = of_type (module Float)
-  let string = of_type (module String)
-  let tag gen _ _ = gen
 
   let name_examples ~case_sensitivity string =
     let%map.List change_case =
@@ -34,79 +29,95 @@ module Generate_callbacks = struct
     change_case string
   ;;
 
-  let option value_gen =
-    let old = !Sexplib0.Sexp_conv.write_old_option_format in
-    [ true, 1., Generator.return (Sexp.Atom "none")
-    ; true, 1., Generator.return (Sexp.Atom "None")
-    ; old, 2., Generator.return (Sexp.List [])
-    ; true, 1., Generator.map value_gen ~f:(fun sexp -> Sexp.List [ Atom "some"; sexp ])
-    ; true, 1., Generator.map value_gen ~f:(fun sexp -> Sexp.List [ Atom "Some"; sexp ])
-    ; old, 2., Generator.map value_gen ~f:(fun sexp -> Sexp.List [ sexp ])
-    ]
-    |> List.filter_map ~f:(fun (keep, weight, gen) ->
-      if keep then Some (weight, gen) else None)
-    |> Generator.weighted_union
-  ;;
-
-  let union = Generator.union
-  let lazy_ = Generator.of_lazy
-  let of_lazy_recursive = lazy_
-
-  type list_t = Sexp.t list Generator.t
-
-  let list list_gen = Generator.map list_gen ~f:(fun list -> Sexp.List list)
-  let many = Generator.list
-  let empty = Generator.return []
-
-  let cons head tail =
-    let%map head = head
-    and tail = tail in
-    head :: tail
-  ;;
-
-  let record fields ~allow_extra_fields =
-    let field_gens =
-      List.map fields ~f:(fun (field_name, (field, _)) ->
-        let required_gen list_gen =
-          let%map sexps = list_gen in
-          [ Sexp.List (Sexp.Atom field_name :: sexps) ]
-        in
-        match (field : list_t Sexp_grammar.Field.t) with
-        | Required list_gen -> required_gen list_gen
-        | Optional list_gen ->
-          Generator.union [ Generator.return []; required_gen list_gen ])
-    in
-    let extra_fields_gen =
-      match allow_extra_fields with
-      | false -> Generator.return []
-      | true ->
-        let%bind names =
-          let field_set = fields |> List.map ~f:fst |> Set.of_list (module String) in
-          Generator.string_non_empty_of Generator.char_alpha
-          |> Generator.filter ~f:(fun name -> not (Set.mem field_set name))
-          |> Generator.list
-        in
-        List.map names ~f:(fun name ->
-          let%map sexps = Generator.list Generator.sexp in
+  let rec on_grammar grammar =
+    match (grammar : Sexp_grammar.grammar) with
+    | Any _ -> Generator.sexp
+    | Bool -> of_type (module Bool)
+    | Char -> of_type (module Char)
+    | Integer -> of_type (module Bigint)
+    | Float -> of_type (module Float)
+    | String -> of_type (module String)
+    | Tagged { key = _; value = _; grammar } -> on_grammar grammar
+    | Option grammar ->
+      let value_gen = on_grammar grammar in
+      let old = !Sexplib0.Sexp_conv.write_old_option_format in
+      [ true, 1., Generator.return (Sexp.Atom "none")
+      ; true, 1., Generator.return (Sexp.Atom "None")
+      ; old, 2., Generator.return (Sexp.List [])
+      ; true, 1., Generator.map value_gen ~f:(fun sexp -> Sexp.List [ Atom "some"; sexp ])
+      ; true, 1., Generator.map value_gen ~f:(fun sexp -> Sexp.List [ Atom "Some"; sexp ])
+      ; old, 2., Generator.map value_gen ~f:(fun sexp -> Sexp.List [ sexp ])
+      ]
+      |> List.filter_map ~f:(fun (keep, weight, gen) ->
+        if keep then Some (weight, gen) else None)
+      |> Generator.weighted_union
+    | Union grammars -> Generator.union (List.map grammars ~f:on_grammar)
+    | Lazy lazy_grammar -> Generator.of_lazy (Lazy.map lazy_grammar ~f:on_grammar)
+    | List list_grammar ->
+      let list_gen = on_list_grammar list_grammar in
+      Generator.map list_gen ~f:(fun list -> Sexp.List list)
+    | Variant { case_sensitivity; clauses } ->
+      let clauses = List.map ~f:without_tag_list clauses in
+      List.map clauses ~f:(fun ({ name; clause_kind } : Sexp_grammar.clause) ->
+        let%bind name = Generator.of_list (name_examples ~case_sensitivity name) in
+        match clause_kind with
+        | Atom_clause -> return (Sexp.Atom name)
+        | List_clause { args } ->
+          let%map sexps = on_list_grammar args in
           Sexp.List (Sexp.Atom name :: sexps))
-        |> Generator.all
-    in
-    let%bind sexps = Generator.all (extra_fields_gen :: field_gens) in
-    List.concat sexps |> Generator.list_permutations
-  ;;
+      |> Generator.union
+    | Tycon _ ->
+      let lazy_grammar = lazy (Sexp_grammar.unroll_tycon_untyped grammar) in
+      Generator.of_lazy (Lazy.map lazy_grammar ~f:on_grammar)
+    | Tyvar _ | Recursive _ ->
+      raise_s
+        [%message
+          "Unexpected [Tyvar] or [Tycon] after [unroll_tycon]"
+            ~grammar:(grammar : Sexp_grammar.grammar)]
 
-  let variant clauses ~case_sensitivity =
-    List.map clauses ~f:(fun (clause_name, (maybe_list_gen, _)) ->
-      let%bind name = Generator.of_list (name_examples ~case_sensitivity clause_name) in
-      match maybe_list_gen with
-      | None -> return (Sexp.Atom name)
-      | Some list_gen ->
-        let%map sexps = list_gen in
-        Sexp.List (Sexp.Atom name :: sexps))
-    |> Generator.union
+  and on_list_grammar list_grammar =
+    match list_grammar with
+    | Many grammar -> Generator.list (on_grammar grammar)
+    | Empty -> Generator.return []
+    | Cons (head, tail) ->
+      let%map head = on_grammar head
+      and tail = on_list_grammar tail in
+      head :: tail
+    | Fields { allow_extra_fields; fields } ->
+      let fields = List.map ~f:without_tag_list fields in
+      let field_gens =
+        List.map fields ~f:(fun { name; required; args } ->
+          let list_gen = on_list_grammar args in
+          let required_gen =
+            let%map sexps = list_gen in
+            [ Sexp.List (Sexp.Atom name :: sexps) ]
+          in
+          if required
+          then required_gen
+          else Generator.union [ Generator.return []; required_gen ])
+      in
+      let extra_fields_gen =
+        match allow_extra_fields with
+        | false -> Generator.return []
+        | true ->
+          let%bind names =
+            let field_set =
+              fields
+              |> List.map ~f:(fun { name; _ } -> name)
+              |> Set.of_list (module String)
+            in
+            Generator.string_non_empty_of Generator.char_alpha
+            |> Generator.filter ~f:(fun name -> not (Set.mem field_set name))
+            |> Generator.list
+          in
+          List.map names ~f:(fun name ->
+            let%map sexps = Generator.list Generator.sexp in
+            Sexp.List (Sexp.Atom name :: sexps))
+          |> Generator.all
+      in
+      let%bind sexps = Generator.all (extra_fields_gen :: field_gens) in
+      List.concat sexps |> Generator.list_permutations
   ;;
 end
 
-module Generate = Sexp_grammar.Fold_recursive (Generate_callbacks)
-
-let create = Generate.of_typed_grammar_exn
+let create ({ untyped } : _ Sexp_grammar.t) = Generate.on_grammar untyped
