@@ -255,9 +255,13 @@ module type Sexp_grammar = sig
       the top-most node is not a [Tycon].
 
       Acts as identity if the condition is already satisfied, and
-      does a shallow evaluation of the [Tycon] otherwise. *)
-  val unroll_tycon : 'a t -> 'a t
+      does a shallow evaluation of the [Tycon] otherwise.
+
+      If [tag_prefix] is provided, then [Recursive] and [Tyvar] nodes substituted by
+      [unroll_tycon] will be tagged respectively with keys [tag_prefix ^ ".tycon"] and
+      [tag_prefix ^ ".tyvar"]. The value is the name of the tycon / tyvar. *)
+  val unroll_tycon : ?tag_prefix:string -> 'a t -> 'a t
 
   (** [unroll_tycon_untyped] is like [unroll_tycon] but takes the untyped grammar. *)
-  val unroll_tycon_untyped : grammar -> grammar
+  val unroll_tycon_untyped : ?tag_prefix:string -> grammar -> grammar
 end

@@ -256,8 +256,20 @@ let%expect_test "generator of an infinite type produces a good distribution of s
   [%expect
     {|
     ((samples 10000)
-     (max     31)
-     (mean    6.1212)
+     (max     34)
+     (mean    5.983)
      (min     3)
-     (stdev   3.8104543713645929)) |}]
+     (stdev   3.6989294678218556)) |}]
+;;
+
+let%expect_test "generator of recursive type produces tractable size" =
+  let module M = struct
+    type t =
+      | Leaf of int
+      | Node of t * t
+    [@@deriving sexp_grammar]
+  end
+  in
+  test (module M) ~f:(fun _sexp -> ());
+  [%expect {| |}]
 ;;

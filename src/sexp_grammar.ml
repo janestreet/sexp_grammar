@@ -438,7 +438,7 @@ let rec without_tag_list tag_list =
   | Tag { key = _; value = _; grammar } -> without_tag_list grammar
 ;;
 
-let subst_tycon_body ~name ~params ~defns =
+let subst_tycon_body ~name ~params ~defns ~tag_prefix =
   let defn =
     match List.find defns ~f:(fun { tycon; _ } -> String.equal tycon name) with
     | Some defn -> defn
@@ -468,6 +468,13 @@ let subst_tycon_body ~name ~params ~defns =
             (name : string)
             (tyvar_env : grammar String.Map.t)]
   in
+  let tag grammar ~suffix ~name =
+    match tag_prefix with
+    | None -> grammar
+    | Some prefix ->
+      let key = String.concat ~sep:"." [ prefix; suffix ] in
+      Tagged { key; value = Atom name; grammar }
+  in
   let rec on_grammar grammar =
     match grammar with
     | Any _ | Bool | Char | Integer | Float | String -> grammar
@@ -479,9 +486,10 @@ let subst_tycon_body ~name ~params ~defns =
     | Union grammars -> Union (List.map grammars ~f:on_grammar)
     | Tagged { key; value; grammar } ->
       Tagged { key; value; grammar = on_grammar grammar }
-    | Tyvar name -> on_tyvar name
+    | Tyvar tyvar_name -> tag (on_tyvar tyvar_name) ~suffix:"tyvar" ~name:tyvar_name
     | Recursive (tycon_name, params) ->
-      Tycon (tycon_name, List.map params ~f:on_grammar, defns)
+      let grammar = Tycon (tycon_name, List.map params ~f:on_grammar, defns) in
+      tag grammar ~suffix:"tycon" ~name:tycon_name
     | Lazy lazy_grammar -> Lazy (Lazy.map lazy_grammar ~f:on_grammar)
     | Tycon (name, params, defns) -> Tycon (name, List.map params ~f:on_grammar, defns)
   and on_list_grammar list_grammar =
@@ -502,28 +510,33 @@ let subst_tycon_body ~name ~params ~defns =
   on_grammar defn.grammar
 ;;
 
-let rec unroll_tycon_untyped grammar =
-  match grammar with
-  | Any _
-  | Bool
-  | Char
-  | Integer
-  | Float
-  | String
-  | Option _
-  | List _
-  | Variant _
-  | Union _
-  | Tagged _
-  | Tyvar _
-  | Recursive _
-  | Lazy _ -> grammar
-  | Tycon (name, params, defns) ->
-    let result = subst_tycon_body ~name ~params ~defns |> unroll_tycon_untyped in
-    (fun x -> x) (fun x -> x) result
+let unroll_tycon_untyped ?tag_prefix grammar =
+  let rec loop grammar =
+    match grammar with
+    | Any _
+    | Bool
+    | Char
+    | Integer
+    | Float
+    | String
+    | Option _
+    | List _
+    | Variant _
+    | Union _
+    | Tagged _
+    | Tyvar _
+    | Recursive _
+    | Lazy _ -> grammar
+    | Tycon (name, params, defns) ->
+      let result = subst_tycon_body ~name ~params ~defns ~tag_prefix |> loop in
+      (fun x -> x) (fun x -> x) result
+  in
+  loop grammar [@nontail]
 ;;
 
-let unroll_tycon { untyped } = { untyped = unroll_tycon_untyped untyped }
+let unroll_tycon ?tag_prefix { untyped } =
+  { untyped = unroll_tycon_untyped ?tag_prefix untyped }
+;;
 
 module Validation = struct
   open Or_error.Let_syntax
