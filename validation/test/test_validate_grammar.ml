@@ -427,15 +427,15 @@ let%expect_test "[validate_grammar] does not explode on misbehaved [Many]" =
     and sexp_of_a_layer a_layer =
       List.sexp_of_t
         (function
-          | `A -> Sexp.Atom "A"
-          | `T t -> sexp_of_t t)
+         | `A -> Sexp.Atom "A"
+         | `T t -> sexp_of_t t)
         a_layer
 
     and sexp_of_b_layer b_layer =
       List.sexp_of_t
         (function
-          | `B -> Sexp.Atom "B"
-          | `T t -> sexp_of_t t)
+         | `B -> Sexp.Atom "B"
+         | `T t -> sexp_of_t t)
         b_layer
     ;;
 
@@ -451,17 +451,17 @@ let%expect_test "[validate_grammar] does not explode on misbehaved [Many]" =
     and a_layer_of_sexp sexp =
       List.t_of_sexp
         (function
-          | Atom "A" -> `A
-          | List _ as sexp -> `T (t_of_sexp sexp)
-          | Atom a -> raise_s [%message "wrong atom" a])
+         | Atom "A" -> `A
+         | List _ as sexp -> `T (t_of_sexp sexp)
+         | Atom a -> raise_s [%message "wrong atom" a])
         sexp
 
     and b_layer_of_sexp sexp =
       List.t_of_sexp
         (function
-          | Atom "B" -> `B
-          | List _ as sexp -> `T (t_of_sexp sexp)
-          | Atom a -> raise_s [%message "wrong atom" a])
+         | Atom "B" -> `B
+         | List _ as sexp -> `T (t_of_sexp sexp)
+         | Atom a -> raise_s [%message "wrong atom" a])
         sexp
     ;;
 

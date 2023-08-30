@@ -209,14 +209,12 @@ module type Sexp_grammar = sig
       nodes. Implicitly used by [sexp_of_t]. *)
   module Eager_copy : Fold with type t := grammar and type list_t := list_grammar
 
-
   (** An instance of [Fold_recursive]. Produces an equivalent grammar with no [Recursive],
       [Tycon], or [Tyvar] nodes. This can be useful for subsequent grammar processing
       without the need for type variable / type constructor bookkeeping. The resulting
       tree may unfold infinitely, and uses [Lazy] nodes to avoid divergence. *)
   module Unroll_recursion :
     Fold_partial with type t := grammar and type list_t := list_grammar
-
 
   (** {2 Tagging} *)
 

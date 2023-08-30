@@ -2,41 +2,41 @@ open! Core
 open! Expect_test_helpers_base
 
 module Traverse = Sexp_grammar.Fold_recursive (struct
-    type t = depth:int -> unit
-    type list_t = (depth:int -> unit) list
+  type t = depth:int -> unit
+  type list_t = (depth:int -> unit) list
 
-    let atomic ~depth:_ = ()
-    let compound ts ~depth = List.iter ts ~f:(fun t -> t ~depth)
-    let any (_ : string) = atomic
-    let bool = atomic
-    let char = atomic
-    let integer = atomic
-    let float = atomic
-    let string = atomic
-    let option = Fn.id
-    let union = compound
-    let list = compound
-    let empty = []
-    let cons t ts = t :: ts
-    let many t = [ t ]
+  let atomic ~depth:_ = ()
+  let compound ts ~depth = List.iter ts ~f:(fun t -> t ~depth)
+  let any (_ : string) = atomic
+  let bool = atomic
+  let char = atomic
+  let integer = atomic
+  let float = atomic
+  let string = atomic
+  let option = Fn.id
+  let union = compound
+  let list = compound
+  let empty = []
+  let cons t ts = t :: ts
+  let many t = [ t ]
 
-    let record alist ~allow_extra_fields:_ =
-      List.concat_map alist ~f:(fun ((_ : string), (field, (_ : (string * Sexp.t) list))) ->
-        match (field : _ Sexp_grammar.Field.t) with
-        | Optional x -> x
-        | Required x -> x)
-    ;;
+  let record alist ~allow_extra_fields:_ =
+    List.concat_map alist ~f:(fun ((_ : string), (field, (_ : (string * Sexp.t) list))) ->
+      match (field : _ Sexp_grammar.Field.t) with
+      | Optional x -> x
+      | Required x -> x)
+  ;;
 
-    let variant cases ~case_sensitivity:_ =
-      List.concat_map cases ~f:(fun ((_ : string), (case, (_ : (string * Sexp.t) list))) ->
-        Option.value case ~default:[])
-      |> compound
-    ;;
+  let variant cases ~case_sensitivity:_ =
+    List.concat_map cases ~f:(fun ((_ : string), (case, (_ : (string * Sexp.t) list))) ->
+      Option.value case ~default:[])
+    |> compound
+  ;;
 
-    let lazy_ lazy_t = force lazy_t
-    let tag t (_ : string) (_ : Sexp.t) = t
-    let of_lazy_recursive lazy_t ~depth = if depth > 0 then (force lazy_t) ~depth:(depth - 1)
-  end)
+  let lazy_ lazy_t = force lazy_t
+  let tag t (_ : string) (_ : Sexp.t) = t
+  let of_lazy_recursive lazy_t ~depth = if depth > 0 then (force lazy_t) ~depth:(depth - 1)
+end)
 
 let test ?cr ?(depth = 1) (module M : Sexp_grammar_validation.With_grammar) =
   require_does_not_raise ?cr [%here] (fun () ->

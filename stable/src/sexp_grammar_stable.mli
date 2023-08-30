@@ -6,5 +6,4 @@ module Grammar : sig
 
     include Stable with type t := t
   end
-
 end
