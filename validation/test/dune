@@ -1,5 +1,7 @@
-(library (name sexp_grammar_validation_test)
+(library
+ (name sexp_grammar_validation_test)
  (libraries base core_kernel.composition_infix core
-  expect_test_helpers_core.expect_test_helpers_base jane_kernel
-  sexp_grammar_validation)
- (preprocess (pps ppx_jane)))
+   expect_test_helpers_core.expect_test_helpers_base jane_kernel
+   sexp_grammar_validation)
+ (preprocess
+  (pps ppx_jane)))

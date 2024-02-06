@@ -1,4 +1,6 @@
-(library (name sexp_grammar_test)
+(library
+ (name sexp_grammar_test)
  (libraries core expect_test_helpers_core.expect_test_helpers_base
-  ppx_sexp_conv_test_sexp_grammar sexp_grammar_validation)
- (preprocess (pps ppx_jane)))
+   ppx_sexp_conv_test_sexp_grammar sexp_grammar_validation)
+ (preprocess
+  (pps ppx_jane)))

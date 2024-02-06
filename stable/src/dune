@@ -1,2 +1,5 @@
-(library (name sexp_grammar_stable) (libraries core)
- (preprocess (pps ppx_jane)))
+(library
+ (name sexp_grammar_stable)
+ (libraries core)
+ (preprocess
+  (pps ppx_jane)))
