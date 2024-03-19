@@ -46,5 +46,6 @@ let%expect_test "expression w/ variant attribute" =
              (Many
               (Variant
                ((case_sensitivity Case_sensitive)
-                (clauses ((No_tag ((name C) (clause_kind Atom_clause))))))))))))))))) |}]
+                (clauses ((No_tag ((name C) (clause_kind Atom_clause)))))))))))))))))
+    |}]
 ;;

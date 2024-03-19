@@ -107,7 +107,8 @@ let%expect_test "option" =
       (input ())
       (error (
         "[t_sexp_grammar] rejects sexp from [sexp_of_t]"
-        ("expected an option" (sexp ()))))) |}]
+        ("expected an option" (sexp ())))))
+    |}]
 ;;
 
 let%expect_test "list" =
@@ -164,7 +165,8 @@ let%expect_test "Map.t" =
            (Tagged ((key sexp_grammar.assoc.key) (value ()) (grammar Integer)))
            (Cons
             (Tagged ((key sexp_grammar.assoc.value) (value ()) (grammar (Any A))))
-            Empty)))))))) |}]
+            Empty))))))))
+    |}]
 ;;
 
 let%expect_test "Hash_set.t" =
@@ -195,5 +197,6 @@ let%expect_test "Hashtbl.t" =
            (Tagged ((key sexp_grammar.assoc.key) (value ()) (grammar Integer)))
            (Cons
             (Tagged ((key sexp_grammar.assoc.value) (value ()) (grammar (Any A))))
-            Empty)))))))) |}]
+            Empty))))))))
+    |}]
 ;;

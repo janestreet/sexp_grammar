@@ -51,7 +51,8 @@ let%expect_test "non-tycon definitions" =
     {|
     (Variant
      ((case_sensitivity Case_insensitive)
-      (clauses ((No_tag ((name A) (clause_kind Atom_clause))))))) |}]
+      (clauses ((No_tag ((name A) (clause_kind Atom_clause)))))))
+    |}]
 ;;
 
 let id grammar =
@@ -65,7 +66,8 @@ let%expect_test "nonrecursive tycon" =
     {|
     ((original
       (Tycon id (String) (((tycon id) (tyvars (a)) (grammar (Tyvar a))))))
-     (unrolled String)) |}]
+     (unrolled String))
+    |}]
 ;;
 
 let sexp grammar =
@@ -103,7 +105,8 @@ let%expect_test "recursive tycon" =
             (tyvars (atom))
             (grammar
              (Union ((List (Many (Recursive sexp (String)))) (Tyvar atom)))))))))
-        String)))) |}]
+        String))))
+    |}]
 ;;
 
 let%expect_test "tycon is not topmost node" =
@@ -117,7 +120,8 @@ let%expect_test "tycon is not topmost node" =
       ((
        (tycon sexp)
        (tyvars (atom))
-       (grammar (Union ((List (Many (Recursive sexp (String)))) (Tyvar atom)))))))) |}]
+       (grammar (Union ((List (Many (Recursive sexp (String)))) (Tyvar atom))))))))
+    |}]
 ;;
 
 let%expect_test "argument of tycons are not unrolled" =
@@ -161,7 +165,8 @@ let%expect_test "argument of tycons are not unrolled" =
                    (String)
                    (((tycon id) (tyvars (a)) (grammar (Tyvar a)))))))))
                (Tyvar atom)))))))))
-        (Tycon id (String) (((tycon id) (tyvars (a)) (grammar (Tyvar a))))))))) |}]
+        (Tycon id (String) (((tycon id) (tyvars (a)) (grammar (Tyvar a)))))))))
+    |}]
 ;;
 
 let alist grammar =
@@ -207,7 +212,8 @@ let%expect_test "only directly nested tycons are unrolled" =
           ((tycon list) (tyvars (elt)) (grammar (List (Many (Tyvar elt)))))
           ((tycon alist)
            (tyvars (data))
-           (grammar (Recursive list ((Recursive pair (String Integer)))))))))))) |}]
+           (grammar (Recursive list ((Recursive pair (String Integer))))))))))))
+    |}]
 ;;
 
 let tree grammar =
@@ -270,5 +276,6 @@ let%expect_test "tycon substituted in multiple places" =
               (Cons
                (Recursive tree ((Tyvar key)))
                (Cons (Tyvar key) (Cons (Recursive tree ((Tyvar key))) Empty))))))))
-          Empty)))))) |}]
+          Empty))))))
+    |}]
 ;;

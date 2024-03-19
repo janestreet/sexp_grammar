@@ -84,7 +84,8 @@ let%expect_test _ =
       ((allow_extra_fields false)
        (fields
         ((No_tag ((name x) (required true) (args (Cons Float Empty))))
-         (No_tag ((name y) (required true) (args (Cons Float Empty))))))))) |}]
+         (No_tag ((name y) (required true) (args (Cons Float Empty)))))))))
+    |}]
 ;;
 
 include struct
@@ -125,7 +126,8 @@ let%expect_test _ =
       (clauses
        ((No_tag ((name One) (clause_kind Atom_clause)))
         (No_tag ((name Two) (clause_kind Atom_clause)))
-        (No_tag ((name Three) (clause_kind Atom_clause))))))) |}]
+        (No_tag ((name Three) (clause_kind Atom_clause)))))))
+    |}]
 ;;
 
 include struct
@@ -152,7 +154,8 @@ let%expect_test _ =
        ((No_tag
          ((name This) (clause_kind (List_clause (args (Cons Integer Empty))))))
         (No_tag
-         ((name That) (clause_kind (List_clause (args (Cons String Empty)))))))))) |}]
+         ((name That) (clause_kind (List_clause (args (Cons String Empty))))))))))
+    |}]
 ;;
 
 include struct
@@ -178,7 +181,8 @@ let%expect_test _ =
       (clauses
        ((No_tag ((name No) (clause_kind Atom_clause)))
         (No_tag
-         ((name Yes) (clause_kind (List_clause (args (Cons Integer Empty)))))))))) |}]
+         ((name Yes) (clause_kind (List_clause (args (Cons Integer Empty))))))))))
+    |}]
 ;;
 
 include struct
@@ -232,7 +236,8 @@ let%expect_test _ =
      ((case_sensitivity Case_sensitive)
       (clauses
        ((No_tag ((name Red) (clause_kind Atom_clause)))
-        (No_tag ((name Blue) (clause_kind Atom_clause))))))) |}]
+        (No_tag ((name Blue) (clause_kind Atom_clause)))))))
+    |}]
 ;;
 
 include struct
@@ -268,7 +273,8 @@ let%expect_test _ =
          ((No_tag ((name Fast) (clause_kind Atom_clause)))
           (No_tag ((name Slow) (clause_kind Atom_clause)))
           (No_tag
-           ((name Count) (clause_kind (List_clause (args (Cons Integer Empty)))))))))))) |}]
+           ((name Count) (clause_kind (List_clause (args (Cons Integer Empty))))))))))))
+    |}]
 ;;
 
 include struct
@@ -304,7 +310,8 @@ let%expect_test _ =
             (No_tag
              ((name children)
               (required true)
-              (args (Cons (List (Many (Recursive tree ((Tyvar a))))) Empty))))))))))))) |}]
+              (args (Cons (List (Many (Recursive tree ((Tyvar a))))) Empty)))))))))))))
+    |}]
 ;;
 
 include struct
@@ -343,7 +350,8 @@ let%expect_test _ =
              (No_tag
               ((name betas)
                (required true)
-               (args (Cons (List (Many (Recursive beta ()))) Empty))))))))))))) |}]
+               (args (Cons (List (Many (Recursive beta ()))) Empty)))))))))))))
+    |}]
 ;;
 
 include struct
@@ -382,7 +390,8 @@ let%expect_test _ =
              (No_tag
               ((name betas)
                (required true)
-               (args (Cons (List (Many (Recursive beta ()))) Empty))))))))))))) |}]
+               (args (Cons (List (Many (Recursive beta ()))) Empty)))))))))))))
+    |}]
 ;;
 
 include struct
@@ -419,7 +428,8 @@ let%expect_test _ =
                (No_tag
                 ((name betas)
                  (required true)
-                 (args (Cons (List (Many (Recursive beta ()))) Empty))))))))))))))) |}]
+                 (args (Cons (List (Many (Recursive beta ()))) Empty)))))))))))))))
+    |}]
 ;;
 
 include struct
@@ -458,7 +468,8 @@ let%expect_test _ =
           ((name d) (required false) (args (Cons (List (Many String)) Empty))))
          (No_tag
           ((name e) (required false) (args (Cons (List (Many String)) Empty))))
-         (No_tag ((name f) (required false) (args (Cons (Any Sexp.t) Empty))))))))) |}]
+         (No_tag ((name f) (required false) (args (Cons (Any Sexp.t) Empty)))))))))
+    |}]
 ;;
 
 include struct
@@ -514,7 +525,8 @@ let%expect_test _ =
                    (required false)
                    (args (Cons (List (Many String)) Empty))))
                  (No_tag
-                  ((name f) (required false) (args (Cons (Any Sexp.t) Empty))))))))))))))))) |}]
+                  ((name f) (required false) (args (Cons (Any Sexp.t) Empty)))))))))))))))))
+    |}]
 ;;
 
 include struct
@@ -541,7 +553,8 @@ let%expect_test _ =
      ((case_sensitivity Case_sensitive)
       (clauses
        ((No_tag ((name A) (clause_kind Atom_clause)))
-        (No_tag ((name B) (clause_kind (List_clause (args (Many Integer)))))))))) |}]
+        (No_tag ((name B) (clause_kind (List_clause (args (Many Integer))))))))))
+    |}]
 ;;
 
 include struct
@@ -565,5 +578,6 @@ let%expect_test _ =
       ((allow_extra_fields false)
        (fields
         ((No_tag ((name x) (required true) (args (Cons (Union ()) Empty))))
-         (No_tag ((name y) (required true) (args (Cons (Union ()) Empty))))))))) |}]
+         (No_tag ((name y) (required true) (args (Cons (Union ()) Empty)))))))))
+    |}]
 ;;

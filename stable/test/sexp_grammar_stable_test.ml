@@ -83,7 +83,8 @@ end [@ocaml.remove_aliases] = struct
                (key   key)
                (value value)
                (grammar (List Empty)))))
-           (bin_io "\n\003key\000\005value\007\000")) |}]
+           (bin_io "\n\003key\000\005value\007\000"))
+          |}]
       ;;
     end
   end
