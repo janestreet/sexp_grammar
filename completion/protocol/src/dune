@@ -1,0 +1,6 @@
+(library
+ (name sexp_grammar_completion_protocol)
+ (public_name sexp_grammar.completion_protocol)
+ (libraries async_rpc_kernel core parsexp_prefix sexp_grammar)
+ (preprocess
+  (pps ppx_jane)))

@@ -1,0 +1,9 @@
+(library
+ (name sexp_grammar_completion_test)
+ (libraries base base_quickcheck
+   expect_test_helpers_core.expect_test_helpers_base
+   patdiff.expect_test_patdiff parsexp_prefix sexp_grammar_completion
+   sexp_grammar_completion_test_helpers core_unix.command_test_helpers core
+   sexp_grammar sexp_grammar_completion_protocol)
+ (preprocess
+  (pps ppx_jane)))

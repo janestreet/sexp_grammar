@@ -1,0 +1,5 @@
+(library
+ (name sexp_grammar_completion_command_rpc_server_test)
+ (libraries async core expect_test_helpers_async expect_test_helpers_core)
+ (preprocess
+  (pps ppx_jane)))

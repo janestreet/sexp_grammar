@@ -20,7 +20,6 @@ let require_does_unroll original =
   match unroll original with
   | Unchanged ->
     print_cr
-      [%here]
       [%message "unrolling did not change grammar" (original : Sexp_grammar.grammar)]
   | Changed unrolled ->
     print_s
@@ -32,7 +31,6 @@ let require_does_not_unroll original =
   | Unchanged -> print_s [%sexp (original : Sexp_grammar.grammar)]
   | Changed unrolled ->
     print_cr
-      [%here]
       [%message
         "unrolling changed grammar"
           (original : Sexp_grammar.grammar)

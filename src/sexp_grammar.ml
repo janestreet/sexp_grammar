@@ -737,27 +737,27 @@ module Validation = struct
     and on_field ~fields ~allow_extra_fields =
       let stop_error sexp = Continue_or_stop.Stop (Or_error.error_s sexp) in
       Staged.stage (fun sexp : (_, _) Continue_or_stop.t ->
-        (match require_list_with_leading_atom "record field" sexp with
-         | Error _ as stop -> Stop stop
-         | Ok (field_name, sexps) ->
-           (match (Map.find fields field_name : _ Seen_or_unseen.t option) with
-            | None ->
-              if allow_extra_fields
-              then Continue fields
-              else
-                stop_error
-                  [%message
-                    "unrecognized record field"
-                      (field_name : string)
-                      ~recognized:(Map.keys fields : string list)
-                      (sexp : Sexp.t)]
-            | Some Seen ->
-              stop_error [%message "duplicate record field" (field_name : string)]
-            | Some (Unseen (Required list_grammar | Optional list_grammar : _ Field.t)) ->
-              let t_list = on_list_grammar list_grammar in
-              (match Staged.unstage t_list sexps with
-               | Ok () -> Continue (Map.set fields ~key:field_name ~data:Seen)
-               | Error _ as reject -> Stop reject))))
+        match require_list_with_leading_atom "record field" sexp with
+        | Error _ as stop -> Stop stop
+        | Ok (field_name, sexps) ->
+          (match (Map.find fields field_name : _ Seen_or_unseen.t option) with
+           | None ->
+             if allow_extra_fields
+             then Continue fields
+             else
+               stop_error
+                 [%message
+                   "unrecognized record field"
+                     (field_name : string)
+                     ~recognized:(Map.keys fields : string list)
+                     (sexp : Sexp.t)]
+           | Some Seen ->
+             stop_error [%message "duplicate record field" (field_name : string)]
+           | Some (Unseen (Required list_grammar | Optional list_grammar : _ Field.t)) ->
+             let t_list = on_list_grammar list_grammar in
+             (match Staged.unstage t_list sexps with
+              | Ok () -> Continue (Map.set fields ~key:field_name ~data:Seen)
+              | Error _ as reject -> Stop reject)))
 
     and on_fields ~fields ~allow_extra_fields =
       let fields = List.map fields ~f:without_tag_list in
@@ -782,11 +782,12 @@ module Validation = struct
           ~f:(fun fields sexp ->
             Staged.unstage (on_field ~fields ~allow_extra_fields) sexp)
           ~finish:(fun fields ->
-            Or_error.find_map_ok (Map.to_alist fields) ~f:(fun (field_name, status) ->
+            List.map (Map.to_alist fields) ~f:(fun (field_name, status) ->
               match status with
               | Seen | Unseen (Optional _) -> Ok ()
               | Unseen (Required _) ->
-                Or_error.error_s [%message "missing record field" (field_name : string)])))
+                Or_error.error_s [%message "missing record field" (field_name : string)])
+            |> Or_error.combine_errors_unit))
     ;;
   end
 end

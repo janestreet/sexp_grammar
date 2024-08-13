@@ -1,0 +1,6 @@
+(library
+ (name sexp_grammar_completion_protocol_test)
+ (libraries core core_kernel.enum parsexp_prefix
+   sexp_grammar_completion_protocol)
+ (preprocess
+  (pps ppx_jane)))

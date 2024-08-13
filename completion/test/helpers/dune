@@ -1,0 +1,9 @@
+(library
+ (name sexp_grammar_completion_test_helpers)
+ (libraries async core_kernel.composition_infix core
+   expect_test_helpers_core.expect_test_helpers_base packaged
+   core_unix.filename_unix parsexp parsexp_prefix sexp_grammar
+   sexp_grammar_completion sexp_grammar_completion_protocol
+   sexp_grammar_validation)
+ (preprocess
+  (pps ppx_jane)))

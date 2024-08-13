@@ -1,0 +1,7 @@
+(library
+ (name sexp_grammar_completion)
+ (public_name sexp_grammar.completion)
+ (libraries core_kernel.composition_infix core dedent parsexp_prefix
+   sexp_grammar sexp_grammar_completion_protocol)
+ (preprocess
+  (pps ppx_jane ppxlib.traverse)))

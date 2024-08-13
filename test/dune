@@ -1,6 +1,7 @@
 (library
  (name sexp_grammar_test)
  (libraries core expect_test_helpers_core.expect_test_helpers_base
-   ppx_sexp_conv_test_sexp_grammar sexp_grammar_validation)
+   ppx_sexp_conv_test_sexp_grammar sexp_grammar sexp_grammar_validation
+   sexplib)
  (preprocess
   (pps ppx_jane)))

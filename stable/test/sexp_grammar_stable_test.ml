@@ -32,7 +32,7 @@ end [@ocaml.remove_aliases] = struct
       let t_sexp_grammar = T.t_sexp_grammar
 
       let%expect_test _ =
-        print_and_check_stable_type [%here] (module T) example_grammars;
+        print_and_check_stable_type (module T) example_grammars;
         [%expect
           {|
           (bin_shape_digest 2b208c8f56151b7eaa218daab3ea0a58)

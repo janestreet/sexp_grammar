@@ -113,7 +113,7 @@ module Generate = struct
       ; old, 2., Generator.map value_gen ~f:(fun sexp -> Sexp.List [ sexp ])
       ]
       |> List.filter_map ~f:(fun (keep, weight, gen) ->
-           if keep then Some (weight, gen) else None)
+        if keep then Some (weight, gen) else None)
       |> Generator.weighted_union
     | Union grammars ->
       recursive_union
