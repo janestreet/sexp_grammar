@@ -67,7 +67,7 @@ let rec known_to_accept_all_sexps (grammar : Sexp_grammar.grammar) : bool =
 let validate_grammar ?test_count ?show_grammar:(should_show_grammar = true) (module M : S)
   =
   let config =
-    let%map.Option test_count = test_count in
+    let%map.Option test_count in
     { Base_quickcheck.Test.default_config with test_count }
   in
   if should_show_grammar then show_grammar (module M);
