@@ -232,7 +232,7 @@ and of_list_grammar list_grammar sexps prefix ~use_old_option_format =
     in
     let%bind.Or_error fields_not_seen_yet =
       List.fold sexps ~init:(Ok fields) ~f:(fun fields sexp ->
-        let%bind.Or_error fields = fields in
+        let%bind.Or_error fields in
         consume_field fields sexp ~allow_extra_fields)
     in
     of_fields fields_not_seen_yet prefix ~allow_extra_fields ~use_old_option_format
