@@ -803,3 +803,20 @@ let validate_sexp_list list_grammar =
 ;;
 
 let validate_sexp { untyped } = validate_sexp_untyped untyped
+
+let rec known_to_accept_all_sexps_untyped grammar =
+  match unroll_tycon_untyped grammar with
+  | Any _ -> true
+  | Bool | Char | Integer | Float | String | Option _ | List _ | Variant _ -> false
+  | Union grammars -> List.exists grammars ~f:known_to_accept_all_sexps_untyped
+  | Lazy lazy_grammar -> known_to_accept_all_sexps_untyped (Lazy.force lazy_grammar)
+  | Tagged { grammar; _ } -> known_to_accept_all_sexps_untyped grammar
+  | (Tycon _ | Tyvar _ | Recursive _) as unrolled ->
+    raise_s
+      [%message
+        "BUG: [unroll_tycon_untyped] removes [Tycon], [Tyvar], and [Recursive]"
+          (unrolled : grammar)
+          (grammar : grammar)]
+;;
+
+let known_to_accept_all_sexps { untyped } = known_to_accept_all_sexps_untyped untyped

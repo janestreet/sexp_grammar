@@ -1,5 +1,5 @@
 open! Core
-open! Async
+open! Async_kernel
 open! Import
 open Candidate
 module Automaton = Parsexp.Private.Automaton

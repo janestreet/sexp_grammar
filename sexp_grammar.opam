@@ -12,8 +12,8 @@ build: [
 depends: [
   "ocaml" {>= "5.1.0"}
   "async_rpc_kernel"
+  "base"
   "core"
-  "core_kernel"
   "dedent"
   "parsexp_prefix"
   "ppx_bin_prot"
@@ -24,8 +24,8 @@ depends: [
   "ppx_sexp_conv"
   "ppx_sexp_message"
   "dune"             {>= "3.11.0"}
-  "ppxlib"           {>= "0.28.0"}
-  "zarith"           {>= "1.11"}
+  "ppxlib"           {= "0.33.0+jst"}
+  "zarith"           {= "1.12+jst"}
 ]
 available: arch != "arm32" & arch != "x86_32"
 synopsis: "Sexp grammar helpers"
