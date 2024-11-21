@@ -49,21 +49,6 @@ let validate_rejection ?config (module M : S) =
               (error : Error.t)])
 ;;
 
-let rec known_to_accept_all_sexps (grammar : Sexp_grammar.grammar) : bool =
-  match Sexp_grammar.unroll_tycon_untyped grammar with
-  | Any _ -> true
-  | Bool | Char | Integer | Float | String | Option _ | List _ | Variant _ -> false
-  | Union grammars -> List.exists grammars ~f:known_to_accept_all_sexps
-  | Lazy lazy_grammar -> known_to_accept_all_sexps (Lazy.force lazy_grammar)
-  | Tagged { grammar; _ } -> known_to_accept_all_sexps grammar
-  | (Tycon _ | Tyvar _ | Recursive _) as unrolled ->
-    raise_s
-      [%message
-        "[unroll_tycon_untyped] removes [Tycon], [Tyvar], and [Recursive]"
-          (unrolled : Sexp_grammar.grammar)
-          (grammar : Sexp_grammar.grammar)]
-;;
-
 let validate_grammar ?test_count ?show_grammar:(should_show_grammar = true) (module M : S)
   =
   let config =
@@ -72,7 +57,7 @@ let validate_grammar ?test_count ?show_grammar:(should_show_grammar = true) (mod
   in
   if should_show_grammar then show_grammar (module M);
   let%bind () = validate_acceptance ?config (module M) in
-  match known_to_accept_all_sexps M.t_sexp_grammar.untyped with
+  match Sexp_grammar.known_to_accept_all_sexps M.t_sexp_grammar with
   | false -> validate_rejection ?config (module M)
   | true -> Ok ()
 ;;

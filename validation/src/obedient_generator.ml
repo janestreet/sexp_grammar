@@ -147,7 +147,7 @@ module Generate = struct
     | Tyvar _ | Recursive _ ->
       raise_s
         [%message
-          "Unexpected [Tyvar] or [Tycon] after [unroll_tycon]"
+          "Unexpected [Tyvar] or [Recursive] after [unroll_tycon]"
             ~grammar:(grammar : Sexp_grammar.grammar)]
 
   and on_list_grammar list_grammar =

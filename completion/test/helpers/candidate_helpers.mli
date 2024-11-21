@@ -1,5 +1,5 @@
 open! Core
-open! Async
+open! Async_kernel
 open! Import
 
 (** [backspace atom_prefix] returns the number of bytes to delete to the left of the

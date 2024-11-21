@@ -12,8 +12,8 @@ build: [
 depends: [
   "ocaml" {>= "5.1.0"}
   "async_rpc_kernel"
+  "base"
   "core"
-  "core_kernel"
   "dedent"
   "parsexp_prefix"
   "ppx_bin_prot"

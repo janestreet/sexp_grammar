@@ -1,7 +1,7 @@
 (** Helpers for testing completion. *)
 
 open! Core
-open! Async
+open! Async_kernel
 open! Import
 
 val default_mark : string
@@ -46,13 +46,6 @@ val show_sexp : _ Sexp_grammar.t -> string -> pos:int -> unit
 *)
 val check_every_position : _ Sexp_grammar.t -> string -> unit
 
-(** [backtesting_command grammar ~name] returns a group of commands for backtesting
-    completions against a corpus of known-good files matching [grammar].
-
-    When such a corpus exists, automated backtesting on each roll is strongly recommended
-    as a complement to the [quickcheck] support below. *)
-val backtesting_command : _ Sexp_grammar.t -> name:string -> Command.t
-
 (** [quickcheck grammar sexp_to_string] generates sexps obeying [grammar], serializes them
     using [sexp_to_string], and then checks that exhaustive completions are indeed
     exhaustive.
@@ -62,3 +55,17 @@ val backtesting_command : _ Sexp_grammar.t -> name:string -> Command.t
     a sexp can be serialized to string: comments, whitespace, escaping. Also, backtesting
     does not require the type to implement sexp_of or quickcheck functions. *)
 val quickcheck : ?cr:CR.t -> _ Sexp_grammar.t -> (Sexp.t -> string) -> unit
+
+module Spot_check : sig
+  type t = private
+    | Failed_to_compute_suggestions of Error.t
+    | No_suggestions_here
+    | Inexhaustive_suggestions_did_not_match_input
+    | Exhaustive_suggestions_did_not_match_input of Candidates.t
+    | Suggestions_consistent_with_input
+  [@@deriving sexp_of]
+
+  val batchwise_check_every_position
+    :  _ Sexp_grammar.t
+    -> (string -> on_error:(t -> string -> pos:int -> unit) -> unit) Staged.t
+end

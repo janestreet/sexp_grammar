@@ -262,4 +262,12 @@ module type Sexp_grammar = sig
 
   (** [unroll_tycon_untyped] is like [unroll_tycon] but takes the untyped grammar. *)
   val unroll_tycon_untyped : ?tag_prefix:string -> grammar -> grammar
+
+  (** [known_to_accept_all_sexps [%sexp_grammar: t]] returns [true] if it is statically
+      known that all sexps satisfy the grammar.  In practice, such grammars are [Any], or
+      (possibly nested) [Union]s where one of the branches is an [Any].
+
+      This check is not complete, i.e. it will return [false] on some grammars which *do*
+      accept all sexps. *)
+  val known_to_accept_all_sexps : 'a t -> bool
 end

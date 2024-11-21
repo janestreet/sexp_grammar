@@ -10,6 +10,7 @@ module Edit = struct
     | Remove of Sexp_index.t
     | Reverse of Sexp_index.t
     | Set of Sexp_index.t * Sexp_index.t
+    | Replace_with_random of Sexp_index.t * Sexp.t
   [@@deriving compare, sexp_of, variants]
 
   let case_changes_of original =
@@ -54,6 +55,7 @@ module Edit = struct
          List.map
            (Set.to_list (case_changes_of s))
            ~f:(fun s -> Sexp_index.set i prev ~to_:(Atom s)))
+    | Replace_with_random (i, s) -> Ok [ Sexp_index.set i prev ~to_:s ]
   ;;
 
   let generate_edits t ~sexp =
@@ -65,8 +67,11 @@ module Edit = struct
     | [] ->
       raise_s [%message "Impossible: every sexp has at least one index." (sexp : Sexp.t)]
     | [ i ] ->
-      let take acc (v : _ Variant.t) = v.constructor i :: acc in
       let skip acc _ = acc in
+      let take acc (v : _ Variant.t) = Generator.return (v.constructor i) :: acc in
+      let take_gen gen acc (v : _ Variant.t) =
+        Generator.map gen ~f:(v.constructor i) :: acc
+      in
       Variants.fold
         ~init:[]
         ~change_case:take
@@ -75,24 +80,33 @@ module Edit = struct
         ~remove:skip
         ~reverse:take
         ~set:skip
-      |> List.filter_map ~f:(generate_edits ~sexp)
+        ~replace_with_random:(take_gen Generator.sexp)
       (* Choose an [Edit.t] uniformly, then choose among its concrete edits. *)
-      |> List.map ~f:Generator.of_list
       |> Generator.union
+      |> Generator.filter_map ~f:(generate_edits ~sexp)
+      |> Generator.bind ~f:Generator.of_list
     | indices ->
       let index_generator = Generator.of_list indices in
       let f acc (variant : _ Variant.t) =
         Generator.map index_generator ~f:variant.constructor :: acc
       in
-      let set acc (_ : _ Variant.t) =
+      let f2 ?(f = fun _ _ -> true) gen acc (variant : (_ -> _ -> _) Variant.t) =
         let generator =
-          Generator.filter_map
-            (Generator.both index_generator index_generator)
-            ~f:(fun (i, j) -> if Sexp_index.equal i j then None else Some (Set (i, j)))
+          Generator.both index_generator gen
+          |> Generator.filter_map ~f:(fun (i, j) ->
+            if f i j then Some (variant.constructor i j) else None)
         in
         generator :: acc
       in
-      Variants.fold ~init:[] ~change_case:f ~lift:f ~nest:f ~remove:f ~reverse:f ~set
+      Variants.fold
+        ~init:[]
+        ~change_case:f
+        ~lift:f
+        ~nest:f
+        ~remove:f
+        ~reverse:f
+        ~set:(f2 index_generator ~f:(fun i j -> not (Sexp_index.equal i j)))
+        ~replace_with_random:(f2 Sexp.quickcheck_generator)
       |> Generator.union
       |> Generator.filter_map ~f:(generate_edits ~sexp)
       |> Generator.bind ~f:Generator.of_list
@@ -103,14 +117,41 @@ let create_unfiltered grammar =
   Generator.bind (Obedient_generator.create grammar) ~f:Edit.generate_edited_sexps
 ;;
 
+let create_with_max_tries grammar ~max_tries =
+  if Sexp_grammar.known_to_accept_all_sexps grammar
+  then
+    raise_s
+      [%message
+        "Cannot generate disobedient sexps for a grammar that accepts all sexps"
+          (grammar : _ Sexp_grammar.t)]
+  else (
+    let validate = Staged.unstage (Sexp_grammar.validate_sexp grammar) in
+    (* As a guard against grammars which accept all sexps but are not caught by
+       the above check, track the number of attempts to generate the first disobedient
+       grammar. *)
+    let num_tries_left = ref max_tries in
+    Generator.filter_map (create_unfiltered grammar) ~f:(fun sexp ->
+      match validate sexp with
+      | Ok () ->
+        if !num_tries_left <= 0
+        then Some (Error `Max_tries_exceeded)
+        else (
+          num_tries_left := !num_tries_left - 1;
+          None)
+      | Error error ->
+        (* We know it's possible to generate disobedient sexps; never fail out. *)
+        num_tries_left := Int.max_value;
+        Some (Ok (sexp, error))))
+;;
+
 let create grammar =
-  let validate = Staged.unstage (Sexp_grammar.validate_sexp grammar) in
-  Generator.filter_map (create_unfiltered grammar) ~f:(fun sexp ->
-    match validate sexp with
-    | Ok () -> None
-    | Error error -> Some (sexp, error))
+  create_with_max_tries ~max_tries:Int.max_value grammar
+  |> Generator.map ~f:(function
+    | Error `Max_tries_exceeded -> assert false
+    | Ok x -> x)
 ;;
 
 module Private = struct
   let create_unfiltered = create_unfiltered
+  let create_with_max_tries = create_with_max_tries
 end
