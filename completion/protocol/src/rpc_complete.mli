@@ -4,8 +4,8 @@
 
     The division of labor between client and server is as follows:
 
-    1. The client determines the current sexp and current atom. It sends the server
-    a prefix of the current sexp, excluding the current atom.
+    1. The client determines the current sexp and current atom. It sends the server a
+       prefix of the current sexp, excluding the current atom.
     2. The server returns all candidates consistent with the current sexp.
     3. The client additionally filters for consistency with the current atom.
 
@@ -21,8 +21,7 @@
     that to implement better completion than would be possible using the grammar alone.
 
     [1] Preceding complete sexps are ignored because the sexp grammar completion model
-    does not take advantage of that information.
-*)
+    does not take advantage of that information. *)
 
 open! Core
 open! Async_rpc_kernel

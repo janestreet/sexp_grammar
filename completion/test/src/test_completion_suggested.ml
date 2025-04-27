@@ -6,7 +6,7 @@ let%expect_test _ =
     [@@@warning "-37"]
 
     type t =
-      | Malformed_tag [@tag Sexp_grammar.completion_suggested = [%sexp "not a bool"]]
+      | Malformed_tag [@tag Sexp_grammar.completion_suggested = Atom "not a bool"]
       | Should_not_suggest of bool
       [@tag Sexp_grammar.completion_suggested = [%sexp false]]
       | Should_suggest of bool

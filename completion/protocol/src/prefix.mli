@@ -6,8 +6,7 @@
     1. preceding complete toplevel sexps, because we consider each sexp independently.
     2. the atom prefix, because we leave it to the client to filter by atom prefix.
 
-    (See {!Rpc_complete} for more on the division of labor between client and server.)
-*)
+    (See {!Rpc_complete} for more on the division of labor between client and server.) *)
 
 open! Core
 open! Import

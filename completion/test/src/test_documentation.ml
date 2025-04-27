@@ -89,6 +89,9 @@ let%expect_test "whitespace in doc comments" =
   let open struct
     [@@@warning "-37"]
 
+    (* Temporarily disable ocamlformat so that doc comments don't get formatted. *)
+    [@@@ocamlformat "disable"]
+
     type t =
       | A
       (** Here is a
@@ -105,6 +108,8 @@ let%expect_test "whitespace in doc comments" =
           *)
       | C (**   single line doc comment but still leading and trailing whitespace   *)
     [@@deriving sexp_grammar ~tags_of_doc_comments]
+
+    [@@@ocamlformat "enable"]
   end in
   let test = show (Sexp_grammar_completion.complete [%sexp_grammar: t] |> unstage) in
   test "";

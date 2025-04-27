@@ -118,7 +118,7 @@ module type Sexp_grammar = sig
     val to_string_comparator : t -> (module Comparator.S with type t = string)
   end
 
-  type grammar = Sexp_grammar.grammar =
+  type grammar : value mod contended portable = Sexp_grammar.grammar =
     | Any of string
     | Bool
     | Char
@@ -133,7 +133,8 @@ module type Sexp_grammar = sig
     | Tyvar of string
     | Tycon of string * grammar list * defn list
     | Recursive of string * grammar list
-    | Lazy of grammar Lazy.t
+    | Lazy of grammar Portable_lazy.t
+  [@@unsafe_allow_any_mode_crossing]
 
   and list_grammar = Sexp_grammar.list_grammar =
     | Empty
@@ -157,10 +158,11 @@ module type Sexp_grammar = sig
     | Case_sensitive
     | Case_sensitive_except_first_character
 
-  and variant = Sexp_grammar.variant =
+  and variant : value mod contended portable = Sexp_grammar.variant =
     { case_sensitivity : case_sensitivity
     ; clauses : clause with_tag_list list
     }
+  [@@unsafe_allow_any_mode_crossing]
 
   and clause = Sexp_grammar.clause =
     { name : string
@@ -192,7 +194,7 @@ module type Sexp_grammar = sig
 
   (** For stable serializations of these types, see [Sexp_grammar_stable]. *)
 
-  val coerce : _ t -> _ t
+  val coerce : _ t -> _ t @@ portable
 
   (** Folds over a grammar. *)
   module Fold_nonrecursive (Callbacks : Callbacks_for_fold_nonrecursive) :
@@ -208,13 +210,6 @@ module type Sexp_grammar = sig
   (** An instance of [Fold_nonrecursive]. Produces an equivalent grammar with no [Lazy]
       nodes. Implicitly used by [sexp_of_t]. *)
   module Eager_copy : Fold with type t := grammar and type list_t := list_grammar
-
-  (** An instance of [Fold_recursive]. Produces an equivalent grammar with no [Recursive],
-      [Tycon], or [Tyvar] nodes. This can be useful for subsequent grammar processing
-      without the need for type variable / type constructor bookkeeping. The resulting
-      tree may unfold infinitely, and uses [Lazy] nodes to avoid divergence. *)
-  module Unroll_recursion :
-    Fold_partial with type t := grammar and type list_t := list_grammar
 
   (** {2 Tagging} *)
 
@@ -239,8 +234,8 @@ module type Sexp_grammar = sig
   (** [validate_sexp [%sexp_grammar: t]] prepares a function to report whether the grammar
       of [t] accepts a sexp.
 
-      Staged because the outer application does a lot of work. It is often valuable to apply
-      [accepts] to a grammar once, then apply the result to multiple sexps. *)
+      Staged because the outer application does a lot of work. It is often valuable to
+      apply [accepts] to a grammar once, then apply the result to multiple sexps. *)
   val validate_sexp : _ t -> (Sexp.t -> unit Or_error.t) Staged.t
 
   (** [validate_sexp_untyped] is like [validate_sexp] but takes the untyped grammar. *)
@@ -249,11 +244,11 @@ module type Sexp_grammar = sig
   (** [validate_sexp_list] is like [validate_sexp] but validates a sequence of sexps. *)
   val validate_sexp_list : list_grammar -> (Sexp.t list -> unit Or_error.t) Staged.t
 
-  (** [unroll_tycon [%sexp_grammar: t]] returns an equivalent grammar in which
-      the top-most node is not a [Tycon].
+  (** [unroll_tycon [%sexp_grammar: t]] returns an equivalent grammar in which the
+      top-most node is not a [Tycon].
 
-      Acts as identity if the condition is already satisfied, and
-      does a shallow evaluation of the [Tycon] otherwise.
+      Acts as identity if the condition is already satisfied, and does a shallow
+      evaluation of the [Tycon] otherwise.
 
       If [tag_prefix] is provided, then [Recursive] and [Tyvar] nodes substituted by
       [unroll_tycon] will be tagged respectively with keys [tag_prefix ^ ".tycon"] and
@@ -264,7 +259,7 @@ module type Sexp_grammar = sig
   val unroll_tycon_untyped : ?tag_prefix:string -> grammar -> grammar
 
   (** [known_to_accept_all_sexps [%sexp_grammar: t]] returns [true] if it is statically
-      known that all sexps satisfy the grammar.  In practice, such grammars are [Any], or
+      known that all sexps satisfy the grammar. In practice, such grammars are [Any], or
       (possibly nested) [Union]s where one of the branches is an [Any].
 
       This check is not complete, i.e. it will return [false] on some grammars which *do*

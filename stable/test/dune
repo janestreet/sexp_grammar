@@ -1,5 +1,6 @@
 (library
  (name sexp_grammar_stable_test)
- (libraries core expect_test_helpers_core sexp_grammar_stable)
+ (libraries core expect_test_helpers_core sexp_grammar_stable
+   sexp_grammar_validation)
  (preprocess
   (pps ppx_jane)))

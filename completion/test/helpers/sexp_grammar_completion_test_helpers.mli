@@ -42,8 +42,7 @@ val show_sexp : _ Sexp_grammar.t -> string -> pos:int -> unit
 
     Positions with no completion suggestions are shown using [mark_positions]. Separately,
     positions where the completion was inexhaustive and indeed none of the suggestions
-    were consistent with [s] are also shown.
-*)
+    were consistent with [s] are also shown. *)
 val check_every_position : _ Sexp_grammar.t -> string -> unit
 
 (** [quickcheck grammar sexp_to_string] generates sexps obeying [grammar], serializes them
