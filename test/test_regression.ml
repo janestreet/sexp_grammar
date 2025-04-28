@@ -127,3 +127,74 @@ let%expect_test "tycon inside recursion body with same fully qualified name" =
     end);
   [%expect {| |}]
 ;;
+
+let%expect_test "[sexp_of] and [of_sexp] roundtrip" =
+  let module M = struct
+    type t = int Sexp_grammar.t [@@deriving equal, sexp_of]
+
+    (* Equality modulo [Lazy] nodes, since serializers may drop them. *)
+    let equal =
+      Comparable.lift equal ~f:(fun x ->
+        { untyped = Sexp_grammar.Eager_copy.of_typed_grammar x })
+    ;;
+  end
+  in
+  let module Sexp = struct
+    type t = int Sexp_grammar.t [@@deriving sexp]
+    type repr = Sexp.t [@@deriving sexp_of]
+
+    let to_repr = sexp_of_t
+    let of_repr = t_of_sexp
+    let repr_name = "Sexp"
+  end
+  in
+  let module Bin = struct
+    module T = struct
+      type t = int Sexp_grammar.t [@@deriving bin_io]
+    end
+
+    include T
+
+    type repr = Bigstring.t [@@deriving sexp_of]
+
+    let to_repr = Binable.to_bigstring (module T)
+    let of_repr = Binable.of_bigstring (module T)
+    let repr_name = "Binio"
+  end
+  in
+  print_and_check_round_trip
+    ~cr:CR_soon
+    (module M)
+    [ (module Sexp); (module Bin) ]
+    [ { untyped = Integer }
+    ; { untyped = Option Bool }
+    ; { untyped = Union [] }
+    ; { untyped = Union [ String; Any "any" ] }
+    ; { untyped = Lazy (Portable_lazy.from_val Sexp_grammar.Float) }
+    ; { untyped =
+          Tycon
+            ( "t"
+            , [ Integer ]
+            , [ { tycon = "t"
+                ; tyvars = [ "a" ]
+                ; grammar = List (Many (Recursive ("t", [ Tyvar "a" ])))
+                }
+              ] )
+      }
+    ];
+  [%expect
+    {|
+    ((Sexp  Integer)
+     (Binio "\003"))
+    ((Sexp (Option Bool)) (Binio "\006\001"))
+    ((Sexp (Union ())) (Binio "\t\000"))
+    ((Sexp (Union (String (Any any)))) (Binio "\t\002\005\000\003any"))
+    ((Sexp  Float)
+     (Binio "\014\004"))
+    ((Sexp (
+       Tycon t
+       (Integer)
+       (((tycon t) (tyvars (a)) (grammar (List (Many (Recursive t ((Tyvar a))))))))))
+     (Binio "\012\001t\001\003\001\001t\001\001a\007\002\r\001t\001\011\001a"))
+    |}]
+;;

@@ -2,8 +2,8 @@ open! Core
 open! Async_kernel
 open! Import
 
-(** [backspace atom_prefix] returns the number of bytes to delete to the left of the
-    point in order to remove the current atom, if any. *)
+(** [backspace atom_prefix] returns the number of bytes to delete to the left of the point
+    in order to remove the current atom, if any. *)
 val backspace : Atom_prefix.t option -> int
 
 (** [matches candidates prefix string ~pos] returns [true] if at least one of [candidates]

@@ -55,7 +55,8 @@ type grammar = Sexp_grammar.grammar =
   | Tyvar of string
   | Tycon of string * grammar list * defn list
   | Recursive of string * grammar list
-  | Lazy of grammar Lazy.t
+  | Lazy of grammar Portable_lazy.t
+[@@unsafe_allow_any_mode_crossing]
 
 and list_grammar = Sexp_grammar.list_grammar =
   | Empty
@@ -83,6 +84,7 @@ and variant = Sexp_grammar.variant =
   { case_sensitivity : case_sensitivity
   ; clauses : clause with_tag_list list
   }
+[@@unsafe_allow_any_mode_crossing]
 
 and clause = Sexp_grammar.clause =
   { name : string
@@ -291,7 +293,8 @@ module Fold_nonrecursive (Callbacks : Callbacks_for_fold_nonrecursive) :
       Callbacks.tycon tycon ~params ~defns
     | Recursive (tycon_name, params) ->
       Callbacks.recursive tycon_name ~params:(List.map ~f:of_grammar params)
-    | Lazy lazy_grammar -> Callbacks.lazy_ (Lazy.map ~f:of_grammar lazy_grammar)
+    | Lazy lazy_grammar ->
+      Callbacks.lazy_ (lazy (of_grammar (Portable_lazy.force lazy_grammar)))
     | Tagged { key; value; grammar } -> Callbacks.tag (of_grammar grammar) key value
 
   and of_clause_with_tag_list = function
@@ -338,7 +341,7 @@ module Fold_recursive (Callbacks : Callbacks_for_fold_recursive) :
   let of_typed_grammar_exn t = of_grammar_exn t.untyped
 end
 
-module Copy_callbacks = struct
+module Eager_copy_callbacks = struct
   type t = grammar
   type list_t = list_grammar
 
@@ -396,19 +399,6 @@ module Copy_callbacks = struct
     in
     Tycon (tycon_name, params, defns)
   ;;
-end
-
-module Recursive_copy_callbacks = struct
-  include Copy_callbacks
-
-  let lazy_ lazy_t = Lazy lazy_t
-  let of_lazy_recursive lazy_t = Lazy lazy_t
-end
-
-module Unroll_recursion = Fold_recursive (Recursive_copy_callbacks)
-
-module Eager_copy_callbacks = struct
-  include Copy_callbacks
 
   let lazy_ = Lazy.force
 end
@@ -417,6 +407,13 @@ module Eager_copy = Fold_nonrecursive (Eager_copy_callbacks)
 
 (* Leave [Lazy] constructors out of sexp. *)
 let sexp_of_t _ t = sexp_of_grammar (Eager_copy.of_grammar t.untyped)
+
+(* For backwards-compatibility, we support the derived [t_of_sexp].
+   For roundtripping, we support [grammar_of_sexp] without the extra wrapper. *)
+let t_of_sexp a_of_sexp sexp =
+  try t_of_sexp a_of_sexp sexp with
+  | _ -> { untyped = grammar_of_sexp sexp }
+;;
 
 let first_tag_value tags name of_sexp =
   match List.Assoc.find tags name ~equal:String.equal with
@@ -475,7 +472,7 @@ let subst_tycon_body ~name ~params ~defns ~tag_prefix =
       let key = String.concat ~sep:"." [ prefix; suffix ] in
       Tagged { key; value = Atom name; grammar }
   in
-  let rec on_grammar grammar =
+  let rec on_grammar (grammar : grammar) : grammar =
     match grammar with
     | Any _ | Bool | Char | Integer | Float | String -> grammar
     | Option grammar -> Option (on_grammar grammar)
@@ -490,7 +487,11 @@ let subst_tycon_body ~name ~params ~defns ~tag_prefix =
     | Recursive (tycon_name, params) ->
       let grammar = Tycon (tycon_name, List.map params ~f:on_grammar, defns) in
       tag grammar ~suffix:"tycon" ~name:tycon_name
-    | Lazy lazy_grammar -> Lazy (Lazy.map lazy_grammar ~f:on_grammar)
+    | Lazy lazy_grammar ->
+      Lazy
+        (Portable_lazy.map
+           lazy_grammar
+           ~f:(Portability_hacks.magic_portable__needs_base_and_core on_grammar))
     | Tycon (name, params, defns) -> Tycon (name, List.map params ~f:on_grammar, defns)
   and on_list_grammar list_grammar =
     match list_grammar with
@@ -605,7 +606,9 @@ module Validation = struct
       | Tagged { key = _; value = _; grammar } -> on_grammar grammar
       | Option grammar ->
         let f = on_grammar grammar in
-        let read_old_option_format = !Sexplib0.Sexp_conv.read_old_option_format in
+        let read_old_option_format =
+          Dynamic.get Sexplib0.Sexp_conv.read_old_option_format
+        in
         Staged.stage (fun sexp ->
           match (sexp : Sexp.t) with
           | Atom ("none" | "None") -> Ok ()
@@ -622,7 +625,7 @@ module Validation = struct
             let s = "expected union of several grammars, but none were satisfied." in
             Or_error.error_s [%message s ~_:(error : Error.t)])
       | Lazy grammar ->
-        let lazy_f = Lazy.map grammar ~f:on_grammar in
+        let lazy_f = lazy (on_grammar (Portable_lazy.force grammar)) in
         Staged.stage (fun sexp -> Staged.unstage (Lazy.force lazy_f) sexp)
       | List list_grammar ->
         let list_t = on_list_grammar list_grammar in
@@ -809,7 +812,8 @@ let rec known_to_accept_all_sexps_untyped grammar =
   | Any _ -> true
   | Bool | Char | Integer | Float | String | Option _ | List _ | Variant _ -> false
   | Union grammars -> List.exists grammars ~f:known_to_accept_all_sexps_untyped
-  | Lazy lazy_grammar -> known_to_accept_all_sexps_untyped (Lazy.force lazy_grammar)
+  | Lazy lazy_grammar ->
+    known_to_accept_all_sexps_untyped (Portable_lazy.force lazy_grammar)
   | Tagged { grammar; _ } -> known_to_accept_all_sexps_untyped grammar
   | (Tycon _ | Tyvar _ | Recursive _) as unrolled ->
     raise_s

@@ -15,10 +15,6 @@ let concat (ts : Candidates.t list) : Candidates.t =
   }
 ;;
 
-(* We "unroll" our grammars as a pre-pass. See [Sexp_grammar.Unroll_recursion]. An
-   unrolled grammar does not contain [Tyvar], [Tycon], or [Recursive]. It may, however,
-   be essentially infinite if all [Lazy]s are forced. *)
-
 (* Dedent doesn't trim blank lines because it needs to let users define string constants
    with leading or trailing empty lines. E.g., imagine constructing a big message
    piecemeal and leaving blank lines as a form of quoting. *)
@@ -61,11 +57,9 @@ let clause_with_tag_list tags (clause : Sexp_grammar.clause) =
 
 let get_docs tags = List.filter_map tags ~f:get_doc
 
-let rec enter_list_in_unrolled_grammar grammar ~use_old_option_format =
-  (* This function only recurs through [Union] and [Lazy] nodes at the top of the tree, so
-     it should terminate even for infinite unrolled grammars. *)
+let rec enter_list_in_grammar grammar ~use_old_option_format =
   let open Sexp_grammar in
-  match (grammar : grammar) with
+  match unroll_tycon_untyped grammar with
   | Tyvar _ | Tycon _ | Recursive _ ->
     raise_s [%message "internal error: recursive grammar must be unrolled" [%here]]
   | Any name -> Ok [ Many (Any name) ]
@@ -74,7 +68,7 @@ let rec enter_list_in_unrolled_grammar grammar ~use_old_option_format =
   | Tagged { key = _; value = _; grammar } ->
     (* The only tags we care about are doc comments, and they cannot appear on arbitrary
        bits of list grammar. *)
-    enter_list_in_unrolled_grammar grammar ~use_old_option_format
+    enter_list_in_grammar grammar ~use_old_option_format
   | Option grammar ->
     (match use_old_option_format with
      | true -> Ok [ Cons (grammar, Empty); Empty ]
@@ -89,7 +83,7 @@ let rec enter_list_in_unrolled_grammar grammar ~use_old_option_format =
          ])
   | Union grammars ->
     grammars
-    |> List.map ~f:(enter_list_in_unrolled_grammar ~use_old_option_format)
+    |> List.map ~f:(enter_list_in_grammar ~use_old_option_format)
     |> Or_error.filter_ok_at_least_one
     |> Or_error.map ~f:List.concat
   | List list_grammar -> Ok [ list_grammar ]
@@ -112,14 +106,12 @@ let rec enter_list_in_unrolled_grammar grammar ~use_old_option_format =
        Or_error.error_s [%message "cannot enter variant type; grammar expects only atoms"]
      | _ :: _ as list_grammars -> Ok list_grammars)
   | Lazy lazy_grammar ->
-    enter_list_in_unrolled_grammar (Lazy.force lazy_grammar) ~use_old_option_format
+    enter_list_in_grammar (Portable_lazy.force lazy_grammar) ~use_old_option_format
 ;;
 
-let rec of_hole_in_unrolled_grammar grammar ~use_old_option_format =
-  (* This function only recurs through [Union] and [Lazy] nodes at the top of the tree, so
-     it should terminate even for infinite unrolled grammars. *)
+let rec of_hole_in_grammar grammar ~use_old_option_format =
   let open Sexp_grammar in
-  match (grammar : grammar) with
+  match unroll_tycon_untyped grammar with
   | Tyvar _ | Tycon _ | Recursive _ ->
     raise_s [%message "internal error: recursive grammar must be unrolled" [%here]]
   | Any _ | Char | Integer | Float | String -> unknown
@@ -148,7 +140,7 @@ let rec of_hole_in_unrolled_grammar grammar ~use_old_option_format =
              }
          ])
   | Union grammars ->
-    grammars |> List.map ~f:(of_hole_in_unrolled_grammar ~use_old_option_format) |> concat
+    grammars |> List.map ~f:(of_hole_in_grammar ~use_old_option_format) |> concat
   | List _ -> exactly [ Enter_list ]
   | Variant { case_sensitivity; clauses } ->
     let get_atom clause =
@@ -173,9 +165,9 @@ let rec of_hole_in_unrolled_grammar grammar ~use_old_option_format =
          | _ :: _ -> false)
     }
   | Lazy lazy_grammar ->
-    of_hole_in_unrolled_grammar (Lazy.force lazy_grammar) ~use_old_option_format
+    of_hole_in_grammar (Portable_lazy.force lazy_grammar) ~use_old_option_format
   | Tagged { key = _; value = _; grammar } ->
-    of_hole_in_unrolled_grammar grammar ~use_old_option_format
+    of_hole_in_grammar grammar ~use_old_option_format
 ;;
 
 let unknown_field here name fields =
@@ -203,12 +195,12 @@ let consume_field fields sexp ~allow_extra_fields =
   | _ -> error_s [%message "Expected a list starting with a field name." (sexp : Sexp.t)]
 ;;
 
-let rec of_prefix_in_unrolled_grammar grammar prefix ~use_old_option_format =
+let rec of_prefix_in_grammar grammar prefix ~use_old_option_format =
   match (prefix : Prefix.t) with
-  | Hole -> Ok (of_hole_in_unrolled_grammar grammar ~use_old_option_format)
+  | Hole -> Ok (of_hole_in_grammar grammar ~use_old_option_format)
   | In_list (sexps, prefix) ->
     let%bind.Or_error list_grammars =
-      enter_list_in_unrolled_grammar grammar ~use_old_option_format
+      enter_list_in_grammar grammar ~use_old_option_format
     in
     List.filter_map list_grammars ~f:(fun list_grammar ->
       of_list_grammar list_grammar sexps prefix ~use_old_option_format |> Result.ok)
@@ -243,7 +235,7 @@ and of_list_grammar list_grammar sexps prefix ~use_old_option_format =
        error_s [%message "Expected end of list."])
   | Cons (first, rest) ->
     (match sexps with
-     | [] -> of_prefix_in_unrolled_grammar first prefix ~use_old_option_format
+     | [] -> of_prefix_in_grammar first prefix ~use_old_option_format
      | sexp :: sexps ->
        let%bind.Or_error () =
          Staged.unstage (Sexp_grammar.validate_sexp_untyped first) sexp
@@ -263,7 +255,7 @@ and of_fields fields prefix ~allow_extra_fields ~use_old_option_format =
         clause_with_tag_list tags { name; clause_kind = Atom_clause })
     in
     let candidates =
-      of_hole_in_unrolled_grammar
+      of_hole_in_grammar
         (Variant { case_sensitivity = Case_sensitive; clauses })
         ~use_old_option_format
     in
@@ -284,9 +276,7 @@ and of_fields fields prefix ~allow_extra_fields ~use_old_option_format =
       in
       Variant { case_sensitivity = Case_sensitive; clauses }
     in
-    let candidates =
-      of_hole_in_unrolled_grammar remaining_fields ~use_old_option_format
-    in
+    let candidates = of_hole_in_grammar remaining_fields ~use_old_option_format in
     Ok { candidates with exhaustive }
   | In_list (List _ :: _, _) | In_list ([], In_list _) ->
     raise_s [%message "Expected record fields" (prefix : Prefix.t)]
@@ -295,7 +285,7 @@ and of_many grammar sexps prefix ~use_old_option_format =
   match sexps with
   | [] ->
     let%bind.Or_error candidates =
-      of_prefix_in_unrolled_grammar grammar prefix ~use_old_option_format
+      of_prefix_in_grammar grammar prefix ~use_old_option_format
     in
     (* [exhaustive = false] because we don't suggest ending the list. *)
     Ok { candidates with exhaustive = false }
@@ -309,11 +299,10 @@ and of_many grammar sexps prefix ~use_old_option_format =
 let complete (grammar : _ Sexp_grammar.t) =
   (* Extract this state once, outside the staged function, so we can use a consistent
      format for completion. *)
-  let use_old_option_format = !Sexplib0.Sexp_conv.write_old_option_format in
-  let unrolled_grammar = Sexp_grammar.Unroll_recursion.of_grammar_exn grammar.untyped in
+  let use_old_option_format = Dynamic.get Sexplib0.Sexp_conv.write_old_option_format in
   Staged.stage (fun prefix ->
     let%map.Or_error completion =
-      of_prefix_in_unrolled_grammar unrolled_grammar prefix ~use_old_option_format
+      of_prefix_in_grammar grammar.untyped prefix ~use_old_option_format
     in
     { completion with
       candidates = completion.candidates |> List.dedup_and_sort ~compare:Candidate.compare

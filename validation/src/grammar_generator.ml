@@ -164,7 +164,7 @@ let rec gen_grammar ~(context : Context.t) =
     in
     let lazy_ =
       let%map g = gen_grammar ~context in
-      Lazy (lazy g)
+      Lazy (Portable_lazy.from_val g)
     in
     Generator.weighted_union
       (List.concat

@@ -19,7 +19,8 @@ module V4 = struct
     | Tyvar of string
     | Tycon of string * grammar list * defn list
     | Recursive of string * grammar list
-    | Lazy of grammar Lazy.V1.t
+    | Lazy of grammar Portable_lazy.V1.t
+  [@@unsafe_allow_any_mode_crossing]
 
   and list_grammar = Sexp_grammar.list_grammar =
     | Empty
@@ -47,6 +48,7 @@ module V4 = struct
     { case_sensitivity : case_sensitivity
     ; clauses : clause with_tag_list list
     }
+  [@@unsafe_allow_any_mode_crossing]
 
   and clause = Sexp_grammar.clause =
     { name : string
@@ -72,12 +74,12 @@ module V4 = struct
     ; tyvars : string list
     ; grammar : grammar
     }
-  [@@deriving bin_io, compare, sexp, sexp_grammar]
+  [@@deriving bin_io, compare, equal, sexp, sexp_grammar]
 end
 
 module Grammar = struct
   module V4 = struct
-    type t = V4.grammar [@@deriving bin_io, compare, sexp, sexp_grammar]
+    type t = V4.grammar [@@deriving bin_io, compare, equal, sexp, sexp_grammar]
 
     include (val Comparator.V1.make ~compare ~sexp_of_t)
   end
