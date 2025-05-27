@@ -110,10 +110,10 @@ and defn = Sexp_grammar.defn =
   ; tyvars : string list
   ; grammar : grammar
   }
-[@@deriving bin_io, compare, equal, hash, sexp]
+[@@deriving bin_io, compare ~localize, equal ~localize, hash, sexp]
 
 type 'a t = 'a Sexp_grammar.t = { untyped : grammar }
-[@@unboxed] [@@deriving bin_io, compare, equal, hash, sexp]
+[@@unboxed] [@@deriving bin_io, compare ~localize, equal ~localize, hash, sexp]
 
 let coerce = Sexp_grammar.coerce
 
@@ -590,7 +590,7 @@ module Validation = struct
         ; tycon_defns : defn list
         ; sexp : Sexp.t
         }
-      [@@deriving compare, hash, sexp_of]
+      [@@deriving compare ~localize, hash, sexp_of]
     end
 
     let memo_table = Hashtbl.create (module Memo_key)
