@@ -24,8 +24,8 @@ depends: [
   "ppx_sexp_conv"
   "ppx_sexp_message"
   "dune"             {>= "3.17.0"}
-  "ppxlib"           {= "0.33.0+jst"}
-  "zarith"           {= "1.12+jst"}
+  "ppxlib"           {= "0.33.0+ox"}
+  "zarith"           {= "1.12+ox"}
 ]
 available: arch != "arm32" & arch != "x86_32"
 synopsis: "Sexp grammar helpers"
