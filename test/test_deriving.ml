@@ -581,3 +581,55 @@ let%expect_test _ =
          (No_tag ((name y) (required true) (args (Cons (Union ()) Empty)))))))))
     |}]
 ;;
+
+include struct
+  type nonportable = Test_coverage_for_deriving.nonportable
+  [@@deriving sexp, sexp_grammar]
+end
+
+type nonportable = Test_coverage_for_deriving.nonportable =
+  { x : string
+  ; y : int -> int
+  }
+
+let%expect_test _ =
+  show_grammar
+    (module struct
+      type t = nonportable [@@deriving sexp_grammar]
+    end);
+  [%expect
+    {|
+    (List
+     (Fields
+      ((allow_extra_fields false)
+       (fields
+        ((No_tag ((name x) (required true) (args (Cons String Empty))))
+         (No_tag ((name y) (required true) (args (Cons (Union ()) Empty)))))))))
+    |}]
+;;
+
+include struct
+  type 'a nonportable1 = 'a Test_coverage_for_deriving.nonportable1
+  [@@deriving sexp, sexp_grammar]
+end
+
+type 'a nonportable1 = 'a Test_coverage_for_deriving.nonportable1 =
+  { x : string
+  ; y : 'a -> int
+  }
+
+let%expect_test _ =
+  show_grammar
+    (module struct
+      type t = int nonportable1 [@@deriving sexp_grammar]
+    end);
+  [%expect
+    {|
+    (List
+     (Fields
+      ((allow_extra_fields false)
+       (fields
+        ((No_tag ((name x) (required true) (args (Cons String Empty))))
+         (No_tag ((name y) (required true) (args (Cons (Union ()) Empty)))))))))
+    |}]
+;;

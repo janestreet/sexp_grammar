@@ -44,10 +44,8 @@ module Min_recursive_calls = struct
     | Many _ -> 0
     | Fields { allow_extra_fields = _; fields } ->
       let fields = List.map fields ~f:without_tag_list in
-      List.sum
-        (module Int)
-        fields
-        ~f:(fun { name = _; required = _; args } -> on_list_grammar args)
+      List.sum (module Int) fields ~f:(fun { name = _; required = _; args } ->
+        on_list_grammar args)
   ;;
 end
 

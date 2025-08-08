@@ -180,7 +180,7 @@ let%expect_test "[allow_extra_fields]" =
   test "(";
   [%expect
     {|
-    -1,4 +1,3
+    === DIFF HUNK ===
       (│
       =>
     -|(inexhaustive)
@@ -189,7 +189,7 @@ let%expect_test "[allow_extra_fields]" =
   test "((";
   [%expect
     {|
-    -1,4 +1,3
+    === DIFF HUNK ===
       ((│
       =>
     -|(inexhaustive)
@@ -198,7 +198,7 @@ let%expect_test "[allow_extra_fields]" =
   test "((i";
   [%expect
     {|
-    -1,4 +1,3
+    === DIFF HUNK ===
       ((i│
       =>
     -|(inexhaustive)

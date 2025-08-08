@@ -4,7 +4,7 @@ open Or_error.Let_syntax
 include Validate_grammar_intf
 
 let show_grammar (module M : With_grammar) =
-  Ref.set_temporarily sexp_style Sexp_style.simple_pretty ~f:(fun () ->
+  Dynamic.with_temporarily sexp_style Sexp_style.simple_pretty ~f:(fun () ->
     print_s [%sexp ([%sexp_grammar: M.t] : _ Sexp_grammar.t)])
 ;;
 
