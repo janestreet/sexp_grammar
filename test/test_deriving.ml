@@ -143,7 +143,7 @@ type ('a, 'b) which = ('a, 'b) Test_coverage_for_deriving.which =
 let%expect_test _ =
   validate_grammar
     (module struct
-      type t = (int, string) which [@@deriving quickcheck, sexp, sexp_grammar]
+      type t = (Int64_u.t, Float_u.t) which [@@deriving quickcheck, sexp, sexp_grammar]
     end)
   |> ok_exn;
   [%expect
@@ -154,7 +154,7 @@ let%expect_test _ =
        ((No_tag
          ((name This) (clause_kind (List_clause (args (Cons Integer Empty))))))
         (No_tag
-         ((name That) (clause_kind (List_clause (args (Cons String Empty))))))))))
+         ((name That) (clause_kind (List_clause (args (Cons Float Empty))))))))))
     |}]
 ;;
 
