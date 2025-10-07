@@ -89,10 +89,11 @@ let%expect_test _ =
 ;;
 
 include struct
-  type 'a unary = 'a Test_coverage_for_deriving.unary [@@deriving sexp, sexp_grammar]
+  type ('a : value_or_null) unary = 'a Test_coverage_for_deriving.unary
+  [@@deriving sexp, sexp_grammar]
 end
 
-type 'a unary = 'a list [@@deriving quickcheck]
+type ('a : value_or_null) unary = 'a list [@@deriving quickcheck]
 
 let%expect_test _ =
   validate_grammar
@@ -131,11 +132,11 @@ let%expect_test _ =
 ;;
 
 include struct
-  type ('a, 'b) which = ('a, 'b) Test_coverage_for_deriving.which
+  type ('a : bits64, 'b : float64) which = ('a, 'b) Test_coverage_for_deriving.which
   [@@deriving sexp, sexp_grammar]
 end
 
-type ('a, 'b) which = ('a, 'b) Test_coverage_for_deriving.which =
+type ('a : bits64, 'b : float64) which = ('a, 'b) Test_coverage_for_deriving.which =
   | This of 'a
   | That of 'b
 [@@deriving quickcheck]
@@ -143,7 +144,7 @@ type ('a, 'b) which = ('a, 'b) Test_coverage_for_deriving.which =
 let%expect_test _ =
   validate_grammar
     (module struct
-      type t = (int, string) which [@@deriving quickcheck, sexp, sexp_grammar]
+      type t = (Int64_u.t, Float_u.t) which [@@deriving quickcheck, sexp, sexp_grammar]
     end)
   |> ok_exn;
   [%expect
@@ -154,7 +155,7 @@ let%expect_test _ =
        ((No_tag
          ((name This) (clause_kind (List_clause (args (Cons Integer Empty))))))
         (No_tag
-         ((name That) (clause_kind (List_clause (args (Cons String Empty))))))))))
+         ((name That) (clause_kind (List_clause (args (Cons Float Empty))))))))))
     |}]
 ;;
 
@@ -578,6 +579,58 @@ let%expect_test _ =
       ((allow_extra_fields false)
        (fields
         ((No_tag ((name x) (required true) (args (Cons (Union ()) Empty))))
+         (No_tag ((name y) (required true) (args (Cons (Union ()) Empty)))))))))
+    |}]
+;;
+
+include struct
+  type nonportable = Test_coverage_for_deriving.nonportable
+  [@@deriving sexp, sexp_grammar]
+end
+
+type nonportable = Test_coverage_for_deriving.nonportable =
+  { x : string
+  ; y : int -> int
+  }
+
+let%expect_test _ =
+  show_grammar
+    (module struct
+      type t = nonportable [@@deriving sexp_grammar]
+    end);
+  [%expect
+    {|
+    (List
+     (Fields
+      ((allow_extra_fields false)
+       (fields
+        ((No_tag ((name x) (required true) (args (Cons String Empty))))
+         (No_tag ((name y) (required true) (args (Cons (Union ()) Empty)))))))))
+    |}]
+;;
+
+include struct
+  type 'a nonportable1 = 'a Test_coverage_for_deriving.nonportable1
+  [@@deriving sexp, sexp_grammar]
+end
+
+type 'a nonportable1 = 'a Test_coverage_for_deriving.nonportable1 =
+  { x : string
+  ; y : 'a -> int
+  }
+
+let%expect_test _ =
+  show_grammar
+    (module struct
+      type t = int nonportable1 [@@deriving sexp_grammar]
+    end);
+  [%expect
+    {|
+    (List
+     (Fields
+      ((allow_extra_fields false)
+       (fields
+        ((No_tag ((name x) (required true) (args (Cons String Empty))))
          (No_tag ((name y) (required true) (args (Cons (Union ()) Empty)))))))))
     |}]
 ;;

@@ -1,7 +1,7 @@
 open! Core
 open! Expect_test_helpers_base
 
-let () = sexp_style := Sexp_style.simple_pretty
+let () = Dynamic.set_root sexp_style Sexp_style.simple_pretty
 
 module Unrolled = struct
   type t =
