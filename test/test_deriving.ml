@@ -444,6 +444,7 @@ type record_attributes = Test_coverage_for_deriving.record_attributes =
   ; d : string list
   ; e : bytes array
   ; f : Sexp.t
+  ; g : char or_null
   }
 [@@deriving quickcheck]
 
@@ -468,7 +469,8 @@ let%expect_test _ =
           ((name d) (required false) (args (Cons (List (Many String)) Empty))))
          (No_tag
           ((name e) (required false) (args (Cons (List (Many String)) Empty))))
-         (No_tag ((name f) (required false) (args (Cons (Any Sexp.t) Empty)))))))))
+         (No_tag ((name f) (required false) (args (Cons (Any Sexp.t) Empty))))
+         (No_tag ((name g) (required false) (args (Cons Char Empty)))))))))
     |}]
 ;;
 
@@ -487,6 +489,7 @@ type variant_attributes = Test_coverage_for_deriving.variant_attributes =
       ; d : string list
       ; e : bytes array
       ; f : Sexp.t
+      ; g : char or_null
       }
 [@@deriving quickcheck]
 
@@ -525,7 +528,8 @@ let%expect_test _ =
                    (required false)
                    (args (Cons (List (Many String)) Empty))))
                  (No_tag
-                  ((name f) (required false) (args (Cons (Any Sexp.t) Empty)))))))))))))))))
+                  ((name f) (required false) (args (Cons (Any Sexp.t) Empty))))
+                 (No_tag ((name g) (required false) (args (Cons Char Empty)))))))))))))))))
     |}]
 ;;
 
@@ -621,7 +625,9 @@ type 'a nonportable1 = 'a Test_coverage_for_deriving.nonportable1 =
 let%expect_test _ =
   show_grammar
     (module struct
-      type t = int nonportable1 [@@deriving sexp_grammar]
+      type t = int nonportable1
+
+      let t_sexp_grammar = nonportable1_sexp_grammar int_sexp_grammar
     end);
   [%expect
     {|
