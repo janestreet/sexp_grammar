@@ -23,6 +23,7 @@ depends: [
   "ppx_let"
   "ppx_sexp_conv"
   "ppx_sexp_message"
+  "ppx_template"
   "dune"             {>= "3.17.0"}
   "ppxlib"           {= "0.33.0+ox"}
   "zarith"           {= "1.12+ox"}

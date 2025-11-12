@@ -92,7 +92,7 @@ module type Fold_partial = sig
   val of_list_grammar_exn : Sexp_grammar.list_grammar -> list_t
 end
 
-module type Sexp_grammar = sig
+module type Sexp_grammar = sig @@ portable
   module type Callbacks_for_fold_common = Callbacks_for_fold_common
   module type Callbacks_for_fold_nonrecursive = Callbacks_for_fold_nonrecursive
   module type Callbacks_for_fold_recursive = Callbacks_for_fold_recursive

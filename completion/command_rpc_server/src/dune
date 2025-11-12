@@ -1,6 +1,6 @@
 (library
  (name sexp_grammar_completion_command_rpc_server)
- (libraries base.composition_infix command_rpc core sexp_grammar
-   sexp_grammar_completion_protocol async sexp_grammar_completion)
+ (libraries async command_rpc base.composition_infix core sexp_grammar
+   sexp_grammar_completion sexp_grammar_completion_protocol)
  (preprocess
   (pps ppx_jane)))

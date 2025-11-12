@@ -19,7 +19,7 @@ module Case_sensitivity = struct
 
     let compare a b = Comparable.lift String.compare ~f:String.capitalize a b
 
-    include (val Comparator.make ~compare ~sexp_of_t)
+    include%template (val (Comparator.make [@mode portable]) ~compare ~sexp_of_t)
   end
 
   let to_string_comparator t : (module Comparator.S with type t = string) =
@@ -269,8 +269,17 @@ end = struct
   let finish_list_grammar_exn = finish_exn
 end
 
-module Fold_nonrecursive (Callbacks : Callbacks_for_fold_nonrecursive) :
-  Fold with type t := Callbacks.t and type list_t := Callbacks.list_t = struct
+module%template
+  [@mode (p, c) = ((nonportable, uncontended), (portable, contended))] Fold_nonrecursive (Callbacks : sig
+  @@ p
+    type t : value mod c
+    type list_t : value mod c
+
+    include Callbacks_for_fold_nonrecursive with type t := t and type list_t := list_t
+  end) : sig
+  @@ p
+  include Fold with type t := Callbacks.t and type list_t := Callbacks.list_t
+end = struct
   let rec of_grammar = function
     | Any name -> Callbacks.any name
     | Bool -> Callbacks.bool
@@ -403,7 +412,7 @@ module Eager_copy_callbacks = struct
   let lazy_ = Lazy.force
 end
 
-module Eager_copy = Fold_nonrecursive (Eager_copy_callbacks)
+module%template Eager_copy = Fold_nonrecursive [@mode portable] (Eager_copy_callbacks)
 
 (* Leave [Lazy] constructors out of sexp. *)
 let sexp_of_t _ t = sexp_of_grammar (Eager_copy.of_grammar t.untyped)
@@ -567,7 +576,7 @@ module Validation = struct
     type t = Zarith.Z.t
 
     (* Equivalent to [Bigint.t_of_sexp], without depending on all of [Core]. *)
-    include Sexpable.Of_stringable (Zarith.Z)
+    include Sexpable.Of_stringable [@mode portable] (Zarith.Z)
   end
 
   module Seen_or_unseen = struct
