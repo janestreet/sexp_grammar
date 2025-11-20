@@ -20,11 +20,7 @@ type defn_params =
 (* In addition to generating inhabitable sexps, we need to make sure we don't generate
    sexps with uninhabitable branches, e.g.:
 
-   {|
-      type t =
-        | Ok of int
-        | Bad of Nothing.t
-   |}
+   [{| type t = | Ok of int | Bad of Nothing.t |}]
 
    To do this, we never generate `Union []`, and pass around a [Context.t], via which we
    can prevent generating cycles of [Recursive]s which never bottom out.
@@ -209,8 +205,8 @@ and gen_list_grammar ~kind ~context =
     in
     let many =
       let%map g =
-        (* If a recursive cycle goes through a [List(Many)], it's always possible to bottom out
-           by providing no list elements. *)
+        (* If a recursive cycle goes through a [List(Many)], it's always possible to
+           bottom out by providing no list elements. *)
         gen_grammar ~context:{ context with permitted_recursives = All }
       in
       Many g
@@ -223,9 +219,8 @@ and gen_list_grammar ~kind ~context =
       (match kind with
        | Grammar -> [ 1., empty; 1., cons; 1., many; 1., record ]
        | Args ->
-         (* The [list_grammar]s that are arguments to variants or record fields
-            are almost always nested [Cons]s terminated by an [Empty], so primarily
-            generate those. *)
+         (* The [list_grammar]s that are arguments to variants or record fields are almost
+            always nested [Cons]s terminated by an [Empty], so primarily generate those. *)
          [ 0.19, empty; 0.8, cons; 0.005, many; 0.005, record ]))
 
 and gen_record context =
@@ -286,9 +281,9 @@ and gen_tycon context =
     gen_list_unique
       ~compare:(Comparable.lift [%compare: string] ~f:(fun param -> param.defn_name))
       (match context.gen_recursives with
-       (* If recursives aren't generated, or are rarely generated, some tycon branches will
-           be unusable. We still want to generate them though, because we want to ensure
-           those grammars are properly handled. *)
+       (* If recursives aren't generated, or are rarely generated, some tycon branches
+          will be unusable. We still want to generate them though, because we want to
+          ensure those grammars are properly handled. *)
        | Never | Occasionally ->
          gen_weighted_of_list [ 0.5, 1; 0.3, 2; 0.2, 3; 0.1, 4; 0.05, 5 ]
        | Frequently -> Int.gen_incl 1 5)

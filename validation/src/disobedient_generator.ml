@@ -126,9 +126,8 @@ let create_with_max_tries grammar ~max_tries =
           (grammar : _ Sexp_grammar.t)]
   else (
     let validate = Staged.unstage (Sexp_grammar.validate_sexp grammar) in
-    (* As a guard against grammars which accept all sexps but are not caught by
-       the above check, track the number of attempts to generate the first disobedient
-       grammar. *)
+    (* As a guard against grammars which accept all sexps but are not caught by the above
+       check, track the number of attempts to generate the first disobedient grammar. *)
     let num_tries_left = ref max_tries in
     Generator.filter_map (create_unfiltered grammar) ~f:(fun sexp ->
       match validate sexp with
