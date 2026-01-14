@@ -50,9 +50,9 @@ let test ?cr ?(depth = 1) (module M : Sexp_grammar_validation.With_grammar) =
     Traverse.of_typed_grammar_exn M.t_sexp_grammar ~depth)
 ;;
 
-(* Grammar validation should not fail when a type variable appears inside
-   the body type expression of a recursion expression, e.g.,
-   ... (Recursive (Tycon r ((Tyvar a))) ...) ... *)
+(* Grammar validation should not fail when a type variable appears inside the body type
+   expression of a recursion expression, e.g., ... (Recursive (Tycon r ((Tyvar a))) ...)
+   ... *)
 let%expect_test "tyvar inside recursion body" =
   test
     (module struct
@@ -69,9 +69,9 @@ let%expect_test "tyvar inside recursion body" =
   [%expect {| |}]
 ;;
 
-(* Grammar validation should not fail when an earlier-defined type constructor
-   appears inside the body type expression of a recursion expression, e.g.,
-   ... (Recursive (Tycon l ((Tycon t ()))) ...) ... *)
+(* Grammar validation should not fail when an earlier-defined type constructor appears
+   inside the body type expression of a recursion expression, e.g., ... (Recursive (Tycon
+   l ((Tycon t ()))) ...) ... *)
 let%expect_test "tycon inside recursion body" =
   test
     (module struct
@@ -81,8 +81,7 @@ let%expect_test "tycon inside recursion body" =
   [%expect {| |}]
 ;;
 
-(* This test shows a case where a type can refer to another type
-   of the same base name. *)
+(* This test shows a case where a type can refer to another type of the same base name. *)
 let%expect_test "tycon inside recursion body with same base name" =
   test
     (module struct
@@ -113,8 +112,8 @@ let%expect_test "tycon inside recursion body with same explicitly qualified name
   [%expect {| |}]
 ;;
 
-(* This test shows a case where a type can transitively depend on another type
-   which has the same name in (essentially) the same scope. *)
+(* This test shows a case where a type can transitively depend on another type which has
+   the same name in (essentially) the same scope. *)
 let%expect_test "tycon inside recursion body with same fully qualified name" =
   test
     (module struct

@@ -15,7 +15,7 @@ let%expect_test _ =
     [@@deriving sexp_grammar]
   end in
   let complete = unstage (Sexp_grammar_completion.complete t_sexp_grammar) in
-  (* Don't suggest [Should_not_suggest]. Do suggest the others, including [Malformed_tag]*)
+  (* Don't suggest [Should_not_suggest]. Do suggest the others, including [Malformed_tag] *)
   show complete "";
   [%expect
     {|

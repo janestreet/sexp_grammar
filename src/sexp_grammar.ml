@@ -415,8 +415,8 @@ module%template Eager_copy = Fold_nonrecursive [@mode portable] (Eager_copy_call
 (* Leave [Lazy] constructors out of sexp. *)
 let sexp_of_t _ t = sexp_of_grammar (Eager_copy.of_grammar t.untyped)
 
-(* For backwards-compatibility, we support the derived [t_of_sexp].
-   For roundtripping, we support [grammar_of_sexp] without the extra wrapper. *)
+(* For backwards-compatibility, we support the derived [t_of_sexp]. For roundtripping, we
+   support [grammar_of_sexp] without the extra wrapper. *)
 let t_of_sexp a_of_sexp sexp =
   try t_of_sexp a_of_sexp sexp with
   | _ -> { untyped = grammar_of_sexp sexp }
