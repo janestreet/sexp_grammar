@@ -1,0 +1,5 @@
+(library
+ (name sexp_grammar_tools_test)
+ (libraries core sexp_grammar_tools)
+ (preprocess
+  (pps ppx_jane)))

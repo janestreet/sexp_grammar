@@ -74,12 +74,13 @@ module V4 = struct
     ; tyvars : string list
     ; grammar : grammar
     }
-  [@@deriving bin_io, compare, equal, sexp, sexp_grammar]
+  [@@deriving bin_io, compare ~localize, equal ~localize, sexp, sexp_grammar]
 end
 
 module Grammar = struct
   module V4 = struct
-    type t = V4.grammar [@@deriving bin_io, compare, equal, sexp, sexp_grammar]
+    type t = V4.grammar
+    [@@deriving bin_io, compare ~localize, equal ~localize, sexp, sexp_grammar]
 
     include (val Comparator.V1.make ~compare ~sexp_of_t)
   end
