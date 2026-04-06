@@ -1,0 +1,6 @@
+(library
+ (name sexp_grammar_tools)
+ (libraries textutils.ascii_table_kernel core core_kernel.reversed_list
+   sexp_grammar)
+ (preprocess
+  (pps ppx_jane)))

@@ -220,6 +220,10 @@ module type Sexp_grammar = sig @@ portable
     -> [%of_sexp: 'a]
     -> 'a Or_error.t option
 
+  (** [extract_tag_list with_tag_list] flattens the recursive structure of a
+      [with_tag_list] into the contained value and a list of tags. *)
+  val extract_tag_list : 'a with_tag_list -> 'a And_tags.t
+
   (** [completion_suggested = false] on a variant constructor means that
       [Sexp_grammar_completion] will not suggest the constructor as a completion. The
       constructor is still recognized as valid syntax. Completions are still suggested for

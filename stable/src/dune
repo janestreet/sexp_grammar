@@ -2,4 +2,4 @@
  (name sexp_grammar_stable)
  (libraries core)
  (preprocess
-  (pps ppx_jane)))
+  (pps ppx_jane -compare-require-explicit-locality)))

@@ -444,6 +444,14 @@ let rec without_tag_list tag_list =
   | Tag { key = _; value = _; grammar } -> without_tag_list grammar
 ;;
 
+let[@tail_mod_cons] rec tags_of_tag_list tag_list =
+  match tag_list with
+  | No_tag _ -> []
+  | Tag { key; value; grammar } -> (key, value) :: tags_of_tag_list grammar
+;;
+
+let extract_tag_list tag_list = without_tag_list tag_list, tags_of_tag_list tag_list
+
 let subst_tycon_body ~name ~params ~defns ~tag_prefix =
   let defn =
     match List.find defns ~f:(fun { tycon; _ } -> String.equal tycon name) with

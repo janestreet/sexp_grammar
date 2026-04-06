@@ -29,7 +29,7 @@ end [@ocaml.remove_aliases] = struct
       include (
         T : Stable with type t = T.t with type comparator_witness = T.comparator_witness)
 
-      let equal = T.equal
+      let%template[@mode m = (local, global)] equal = (T.equal [@mode m])
       let t_sexp_grammar = T.t_sexp_grammar
 
       let%expect_test _ =
