@@ -21,7 +21,7 @@
     that to implement better completion than would be possible using the grammar alone.
 
     [1] Preceding complete sexps are ignored because the sexp grammar completion model
-    does not take advantage of that information. *)
+        does not take advantage of that information. *)
 
 open! Core
 open! Async_rpc_kernel
