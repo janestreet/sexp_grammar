@@ -29,7 +29,7 @@ depends: [
   "ppxlib"           {= "0.33.0+ox"}
   "zarith"           {= "1.12+ox"}
 ]
-available: arch != "arm32" & arch != "x86_32"
+available: arch != "x86_32"
 synopsis: "Sexp grammar helpers"
 description: "
 Helpers for manipulating [Sexplib.Sexp_grammar] values.
