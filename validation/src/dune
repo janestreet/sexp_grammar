@@ -1,5 +1,6 @@
 (library
  (name sexp_grammar_validation)
+ (public_name sexp_grammar.validation)
  (libraries bignum.bigint core expect_test_helpers_base sexp_grammar)
  (preprocess
   (pps ppx_jane)))
