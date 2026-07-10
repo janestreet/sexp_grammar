@@ -20,8 +20,8 @@ let traverse t sexp ~on_dst ~on_list =
        | Atom _ -> force invalid
        | List sexps ->
          (match List.split_n sexps head with
-          | _, [] -> force invalid
-          | before, at :: after -> zoom_in tail at ~context:((before, after) :: context)))
+          | #(_, []) -> force invalid
+          | #(before, at :: after) -> zoom_in tail at ~context:((before, after) :: context)))
   in
   zoom_in t sexp ~context:[]
 ;;
