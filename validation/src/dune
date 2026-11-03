@@ -3,4 +3,4 @@
  (public_name sexp_grammar.validation)
  (libraries bignum.bigint core expect_test_helpers_base sexp_grammar)
  (preprocess
-  (pps ppx_jane)))
+  (pps ppx_jane -compare-require-explicit-locality)))

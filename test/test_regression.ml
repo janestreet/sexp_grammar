@@ -129,7 +129,7 @@ let%expect_test "tycon inside recursion body with same fully qualified name" =
 
 let%expect_test "[sexp_of] and [of_sexp] roundtrip" =
   let module M = struct
-    type t = int Sexp_grammar.t [@@deriving equal, sexp_of]
+    type t = int Sexp_grammar.t [@@deriving equal ~localize, sexp_of]
 
     (* Equality modulo [Lazy] nodes, since serializers may drop them. *)
     let equal =

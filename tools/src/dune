@@ -3,4 +3,4 @@
  (libraries textutils.ascii_table_kernel core core_kernel.reversed_list
    sexp_grammar)
  (preprocess
-  (pps ppx_jane)))
+  (pps ppx_jane -compare-require-explicit-locality)))

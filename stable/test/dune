@@ -2,4 +2,4 @@
  (name sexp_grammar_stable_test)
  (libraries core expect_test_helpers_core sexp_grammar_stable)
  (preprocess
-  (pps ppx_jane)))
+  (pps ppx_jane -compare-require-explicit-locality)))

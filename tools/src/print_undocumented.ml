@@ -16,7 +16,7 @@ module Type = struct
 
   type packed = P : _ t -> packed [@@unboxed]
 
-  let [%compare: packed] = Poly.compare
+  let%template[@mode local] compare_packed = Poly.compare
 end
 
 module Item = struct
@@ -26,7 +26,7 @@ module Item = struct
     { name : string
     ; doc_comment : string option
     }
-  [@@deriving compare]
+  [@@deriving compare ~localize]
 
   let is_undocumented t = Option.is_none t.doc_comment
 end
@@ -39,7 +39,7 @@ module Group = struct
     ; items : Item.t list
     ; number_undocumented : int
     }
-  [@@deriving compare]
+  [@@deriving compare ~localize]
 
   let create type_ items =
     let items =
@@ -66,15 +66,19 @@ end
 module Path = struct
   type t = string list
 
-  let compare =
-    (* prefer shorter for legibility, then lexicographic for stability *)
-    Comparable.lift [%compare: int * string list] ~f:(fun t -> List.length t, t)
+  (* prefer shorter for legibility, then lexicographic for stability *)
+  let%template[@mode m = (global, local)] compare =
+    (Comparable.lift [@mode m])
+      ([%compare: int * string list] [@mode.explicit m])
+      ~f:(fun t ->
+        let len = List.length t in
+        (len, t) [@exclave_if_local m])
   ;;
 
   let create = Reversed_list.rev
 end
 
-type t = Group.t * Path.t [@@deriving compare]
+type t = Group.t * Path.t [@@deriving compare ~localize]
 
 let create type_ items path = Group.create type_ items, Path.create path
 

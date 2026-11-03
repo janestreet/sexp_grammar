@@ -2,7 +2,7 @@
 
 open! Base
 
-type t [@@deriving compare, equal, sexp_of]
+type t [@@deriving compare ~localize, equal ~localize, sexp_of]
 
 (** Accessors *)
 

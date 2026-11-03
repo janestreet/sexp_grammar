@@ -85,7 +85,7 @@ let gen_with_tag_list gen =
 
 let gen_with_unique_names ~how_many ~f =
   let%bind names =
-    gen_list_unique how_many gen_small_string ~compare:[%compare: string]
+    gen_list_unique how_many gen_small_string ~compare:([%compare: string] [@mode local])
   in
   let%bind sizes =
     Base_quickcheck.Generator.sizes
@@ -279,7 +279,9 @@ and gen_variant context =
 and gen_tycon context =
   let%bind defns_params =
     gen_list_unique
-      ~compare:(Comparable.lift [%compare: string] ~f:(fun param -> param.defn_name))
+      ~compare:
+        (Comparable.lift ([%compare: string] [@mode local]) ~f:(fun param ->
+           param.defn_name))
       (match context.gen_recursives with
        (* If recursives aren't generated, or are rarely generated, some tycon branches
           will be unusable. We still want to generate them though, because we want to
@@ -292,7 +294,7 @@ and gen_tycon context =
            (Int.gen_incl 1 3)
            (let%bind small_int = Int.gen_incl 1 3 in
             String.gen_with_length small_int Char.gen_alphanum)
-           ~compare:[%compare: string]
+           ~compare:([%compare: string] [@mode local])
        in
        let%map defn_name = gen_small_string in
        { defn_name; tyvar_names })

@@ -194,7 +194,7 @@ module type Sexp_grammar = sig @@ portable
 
   (** For stable serializations of these types, see [Sexp_grammar_stable]. *)
 
-  val coerce : _ t -> _ t @@ portable
+  val coerce : _ t -> _ t
 
   (** Folds over a grammar. *)
   module Fold_nonrecursive (Callbacks : Callbacks_for_fold_nonrecursive) :

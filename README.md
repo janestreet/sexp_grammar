@@ -1,5 +1,4 @@
-Sexp_grammar
-============
+# Sexp_grammar
 
 The `Sexp_grammar` library provides accessors for manipulating the
 types defined in `Sexplib0.Sexp_grammar`. Values of these types are

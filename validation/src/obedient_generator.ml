@@ -21,7 +21,7 @@ module Min_recursive_calls = struct
     | Option grammar -> on_grammar grammar
     | Union grammars ->
       List.map grammars ~f:on_grammar
-      |> List.min_elt ~compare:[%compare: int]
+      |> List.min_elt ~compare:([%compare: int] [@mode local])
       |> Option.value ~default:0
     | Lazy lazy_grammar -> on_grammar (Portable_lazy.force lazy_grammar)
     | List list_grammar -> on_list_grammar list_grammar
@@ -31,7 +31,7 @@ module Min_recursive_calls = struct
         match clause_kind with
         | Atom_clause -> 0
         | List_clause { args } -> on_list_grammar args)
-      |> List.min_elt ~compare:[%compare: int]
+      |> List.min_elt ~compare:([%compare: int] [@mode local])
       |> Option.value ~default:0
     | Tycon (_, args, _) -> List.sum (module Int) args ~f:on_grammar
     | Tyvar _ -> 0

@@ -270,7 +270,8 @@ end = struct
 end
 
 module%template
-  [@mode (p, c) = ((nonportable, uncontended), (portable, contended))] Fold_nonrecursive (Callbacks : sig
+  [@mode (p, c) = ((nonportable, uncontended), (portable, contended))]
+  Fold_nonrecursive (Callbacks : sig
   @@ p
     type t : value mod c
     type list_t : value mod c

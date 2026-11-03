@@ -11,7 +11,7 @@ module Edit = struct
     | Reverse of Sexp_index.t
     | Set of Sexp_index.t * Sexp_index.t
     | Replace_with_random of Sexp_index.t * Sexp.t
-  [@@deriving compare, sexp_of, variants]
+  [@@deriving compare ~localize, sexp_of, variants ~fold]
 
   let case_changes_of original =
     let variations =

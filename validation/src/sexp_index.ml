@@ -1,7 +1,7 @@
 open! Core
 open Or_error.Let_syntax
 
-type t = int list [@@deriving compare, equal, sexp_of]
+type t = int list [@@deriving compare ~localize, equal ~localize, sexp_of]
 
 let traverse t sexp ~on_dst ~on_list =
   let invalid =

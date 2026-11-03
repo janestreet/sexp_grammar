@@ -85,7 +85,7 @@ let spot_check_grammar (type a) t_sexp_grammar t_of_sexp =
     Or_error.try_with (fun () -> ignore (t_of_sexp sexp : a))
   in
   (* The error messages won't match, but whether it is [Error _] or [Ok _] should. *)
-  let does_agree = [%compare.equal: (unit, _) Result.t] in
+  let does_agree = [%compare.equal: (unit, _) Result.t] [@mode local] in
   stage (fun sexp ->
     let accepted_by_grammar = grammar_accepts sexp in
     let accepted_by_t_of_sexp = t_of_sexp_accepts sexp in
