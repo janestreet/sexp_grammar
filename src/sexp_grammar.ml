@@ -19,7 +19,7 @@ module Case_sensitivity = struct
 
     let compare a b = Comparable.lift String.compare ~f:String.capitalize a b
 
-    include%template (val (Comparator.make [@mode portable]) ~compare ~sexp_of_t)
+    include (val Comparator.make ~compare ~sexp_of_t)
   end
 
   let to_string_comparator t : (module Comparator.S with type t = string) =
@@ -110,10 +110,10 @@ and defn = Sexp_grammar.defn =
   ; tyvars : string list
   ; grammar : grammar
   }
-[@@deriving bin_io, compare ~localize, equal ~localize, hash, sexp]
+[@@deriving bin_io, compare, equal, hash, sexp]
 
 type 'a t = 'a Sexp_grammar.t = { untyped : grammar }
-[@@unboxed] [@@deriving bin_io, compare ~localize, equal ~localize, hash, sexp]
+[@@unboxed] [@@deriving bin_io, compare, equal, hash, sexp]
 
 let coerce = Sexp_grammar.coerce
 
@@ -269,8 +269,7 @@ end = struct
   let finish_list_grammar_exn = finish_exn
 end
 
-module%template
-  [@mode (p, c) = ((nonportable, uncontended), (portable, contended))] Fold_nonrecursive (Callbacks : sig
+module Fold_nonrecursive (Callbacks : sig
     type t
     type list_t
 
@@ -410,7 +409,7 @@ module Eager_copy_callbacks = struct
   let lazy_ = Lazy.force
 end
 
-module%template Eager_copy = Fold_nonrecursive [@mode portable] (Eager_copy_callbacks)
+module Eager_copy = Fold_nonrecursive (Eager_copy_callbacks)
 
 (* Leave [Lazy] constructors out of sexp. *)
 let sexp_of_t _ t = sexp_of_grammar (Eager_copy.of_grammar t.untyped)
@@ -582,7 +581,7 @@ module Validation = struct
     type t = Zarith.Z.t
 
     (* Equivalent to [Bigint.t_of_sexp], without depending on all of [Core]. *)
-    include Sexpable.Of_stringable [@mode portable] (Zarith.Z)
+    include Sexpable.Of_stringable (Zarith.Z)
   end
 
   module Seen_or_unseen = struct
@@ -605,7 +604,7 @@ module Validation = struct
         ; tycon_defns : defn list
         ; sexp : Sexp.t
         }
-      [@@deriving compare ~localize, hash, sexp_of]
+      [@@deriving compare, hash, sexp_of]
     end
 
     let memo_table = Hashtbl.create (module Memo_key)

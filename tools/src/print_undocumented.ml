@@ -15,8 +15,6 @@ module Type = struct
   ;;
 
   type packed = P : _ t -> packed [@@unboxed]
-
-  let [%compare: packed] = Poly.compare
 end
 
 module Item = struct
@@ -66,9 +64,11 @@ end
 module Path = struct
   type t = string list
 
+  (* prefer shorter for legibility, then lexicographic for stability *)
   let compare =
-    (* prefer shorter for legibility, then lexicographic for stability *)
-    Comparable.lift [%compare: int * string list] ~f:(fun t -> List.length t, t)
+    Comparable.lift [%compare: int * string list] ~f:(fun t ->
+      let len = List.length t in
+      len, t)
   ;;
 
   let create = Reversed_list.rev
